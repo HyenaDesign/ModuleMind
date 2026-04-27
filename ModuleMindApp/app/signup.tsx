@@ -15,8 +15,51 @@ import { Ionicons, FontAwesome, AntDesign } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 
 export default function SignUpScreen() {
+  const navigation = useNavigation<any>();
   const [agree, setAgree] = useState(false);
-  const navigation = useNavigation();
+  
+  // 1. ADD THESE STATES
+  const [fullName, setFullName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  // 2. ADD THIS FUNCTION
+  const handleSignUp = async () => {
+    if (!fullName || !email || !password) {
+      alert("Vul alle velden in.");
+      return;
+    }
+    if (!agree) {
+      alert("Je moet akkoord gaan met de voorwaarden.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await fetch('http://192.168.0.254:3000/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          full_name: fullName,
+          email: email,
+          password: password,
+        }),
+      });
+
+      const data = await response.json();
+      if (response.status === 201) {
+        alert("Account aangemaakt!");
+        navigation.navigate('Login');
+      } else {
+        alert(data.message || "Registratie mislukt.");
+      }
+    } catch (error) {
+      alert("Netwerkfout. Controleer je IP en server.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <ImageBackground
@@ -56,6 +99,7 @@ export default function SignUpScreen() {
                   style={styles.input} 
                   placeholder="John Doe" 
                   placeholderTextColor="#BBB"
+                  value={fullName} onChangeText={setFullName}
                 />
               </View>
 
@@ -67,6 +111,7 @@ export default function SignUpScreen() {
                   placeholderTextColor="#BBB"
                   keyboardType="email-address"
                   autoCapitalize="none"
+                  value={email} onChangeText={setEmail}
                 />
               </View>
 
@@ -77,6 +122,7 @@ export default function SignUpScreen() {
                   placeholder="........" 
                   placeholderTextColor="#BBB"
                   secureTextEntry 
+                  value={password} onChangeText={setPassword}
                 />
               </View>
 
@@ -95,9 +141,16 @@ export default function SignUpScreen() {
               </TouchableOpacity>
 
               {/* Action Button */}
-              <TouchableOpacity style={styles.signUpButton} activeOpacity={0.8}>
-                <Text style={styles.signUpButtonText}>Sign up</Text>
-              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.signUpButton, loading && { opacity: 0.7 }]} 
+                onPress={handleSignUp}
+                disabled={loading}
+                activeOpacity={0.8}
+                >
+                <Text style={styles.signUpButtonText}>
+                    {loading ? "Bezig..." : "Sign up"}
+                </Text>
+                </TouchableOpacity>
 
               {/* Divider */}
               <View style={styles.dividerContainer}>
@@ -115,11 +168,11 @@ export default function SignUpScreen() {
               </View>
 
               {/* Switch to Login */}
-              <TouchableOpacity style={styles.footer}>
+              <TouchableOpacity style={styles.footer} onPress={() => navigation.navigate('Login')}>
                 <Text style={styles.footerText}>
-                  Al een account? <Text style={styles.linkText}>Sign in</Text>
+                    Al een account? <Text style={styles.linkText}>Sign in</Text>
                 </Text>
-              </TouchableOpacity>
+                </TouchableOpacity>
             </ScrollView>
           </View>
         </KeyboardAvoidingView>
