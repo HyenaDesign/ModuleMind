@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, View, ImageBackground, SafeAreaView } from 'react-native';
+import { StyleSheet, View, ImageBackground, SafeAreaView, Text } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
 export default function WhiteHeaderPage() {
@@ -22,6 +22,14 @@ export default function WhiteHeaderPage() {
         end={{ x: 0.5, y: 1 }}
         style={styles.gradient}
       />
+      <View style={styles.header}>
+        <Text style={styles.headerText}>Vakken</Text>
+        <Text style={styles.headerIcon}>+</Text>
+      </View>
+
+      <View style={styles.contentContainer}>
+        <Text style={styles.contentText}>Nog geen vakken</Text> 
+      </View>
 
       <SafeAreaView style={styles.container}>
         {/* Your content here will sit on the white part */}
@@ -43,5 +51,31 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
+  },
+  header: {
+    marginTop: 40,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 20,
+  },
+  headerText: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginLeft: 4,
+    color: '#05C925',
+  },
+  headerIcon: {
+    fontSize: 30,
+    fontWeight: 'bold',
+    color: '#05C925',
+  },
+  contentContainer: {
+    flex: 1,
+    padding: 20,
+  },
+  contentText: {
+    fontSize: 18,
+    color: '#333',
   },
 });
