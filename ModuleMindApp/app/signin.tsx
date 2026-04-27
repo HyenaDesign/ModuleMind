@@ -10,25 +10,65 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  Alert,
+  ActivityIndicator
 } from 'react-native';
 import { Ionicons, FontAwesome, AntDesign } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 
-export default function SignUpScreen() {
-  const [agree, setAgree] = useState(false);
-  const navigation = useNavigation();
+export default function SignInScreen() {
+  const navigation = useNavigation<any>();
+
+  // --- 1. State for Inputs ---
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  // --- 2. Login Logic ---
+  const handleSignIn = async () => {
+    console.log("Attempting login...");
+    if (!email || !password) {
+      console.log("Validation failed");
+      Alert.alert("Fout", "Vul alstublieft uw email en wachtwoord in.");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      // REPLACE YOUR_IP with the same IP used in your SignUp
+      const response = await fetch('http://192.168.0.254:3000/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (response.status === 200) {
+        // SUCCESS: Navigate to your tab navigator
+        // Using 'replace' ensures the user can't "go back" to the login screen
+        navigation.replace('(tabs)'); 
+      } else {
+        Alert.alert("Login mislukt", data.message || "Ongeldige inloggegevens.");
+      }
+    } catch (error) {
+      console.error(error);
+      Alert.alert("Netwerkfout", "Kan geen verbinding maken met de server.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <ImageBackground
-      source={require('../assets/images/background.jpg')} // Ensure path is correct
+      source={require('../assets/images/background.jpg')} 
       style={styles.background}
       resizeMode="cover"
     >
-        {/* Dark overlay */}
-        <View style={styles.overlay} />
-
+      <View style={styles.overlay} />
       <SafeAreaView style={styles.safeArea}>
-        {/* Navigation Bar */}
         <View style={styles.header}>
           <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
             <Ionicons name="chevron-back" size={24} color="#555" />
@@ -40,23 +80,21 @@ export default function SignUpScreen() {
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.keyboardView}
         >
-          {/* Main White Card */}
           <View style={styles.card}>
             <ScrollView 
               showsVerticalScrollIndicator={false}
               contentContainerStyle={styles.scrollContent}
-              bounces={false}
+              keyboardShouldPersistTaps="handled"
             >
               <Text style={styles.title}>Welkom terug</Text>
-
-              {/* Form Fields - Compact spacing */}
 
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>Email</Text>
                 <TextInput 
                   style={styles.input} 
                   placeholder="Example@email.com" 
-                  placeholderTextColor="#BBB"
+                  value={email}
+                  onChangeText={setEmail}
                   keyboardType="email-address"
                   autoCapitalize="none"
                 />
@@ -67,38 +105,42 @@ export default function SignUpScreen() {
                 <TextInput 
                   style={styles.input} 
                   placeholder="........" 
-                  placeholderTextColor="#BBB"
                   secureTextEntry 
+                  value={password}
+                  onChangeText={setPassword}
                 />
               </View>
 
-              {/* Checkbox Section */}
+              <View style={styles.rowBetween}>
+                <TouchableOpacity 
+                  style={styles.checkboxContainer} 
+                  onPress={() => setRememberMe(!rememberMe)}
+                >
+                  <View style={[styles.checkbox, rememberMe && styles.checkedBox]}>
+                    {rememberMe && <Ionicons name="checkmark" size={14} color="white" />}
+                  </View>
+                  <Text style={styles.checkboxLabel}>Onthoud mij</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity>
+                  <Text style={styles.linkText}>Wachtwoord vergeten?</Text>
+                </TouchableOpacity>
+              </View>
+
               <TouchableOpacity 
-                style={styles.checkboxContainer} 
-                onPress={() => setAgree(!agree)}
-                activeOpacity={0.7}
+                style={styles.signInButton} 
+                onPress={handleSignIn}
+                disabled={loading}
               >
-                <View style={[styles.checkbox, agree && styles.checkedBox]}>
-                  {agree && <Ionicons name="checkmark" size={14} color="white" />}
-                </View>
-                <Text style={styles.checkboxLabel}>
-                  Onthoud mij <Text style={styles.linkText}>                 wachtwoord vergeten?</Text>
-                </Text>
+                {loading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.signInButtonText}>Sign in</Text>}
               </TouchableOpacity>
 
-              {/* Action Button */}
-              <TouchableOpacity style={styles.signUpButton} activeOpacity={0.8}>
-                <Text style={styles.signUpButtonText}>Sign in</Text>
-              </TouchableOpacity>
-
-              {/* Divider */}
               <View style={styles.dividerContainer}>
                 <View style={styles.line} />
                 <Text style={styles.dividerText}>OF</Text>
                 <View style={styles.line} />
               </View>
 
-              {/* Social Login Row */}
               <View style={styles.socialRow}>
                 <TouchableOpacity style={styles.socialCircle}><FontAwesome name="facebook" size={30} color="#1877F2" /></TouchableOpacity>
                 <TouchableOpacity style={styles.socialCircle}><AntDesign name="twitter" size={26} color="black" /></TouchableOpacity>
@@ -106,8 +148,7 @@ export default function SignUpScreen() {
                 <TouchableOpacity style={styles.socialCircle}><AntDesign name="windows" size={28} color="#00A1F1" /></TouchableOpacity>
               </View>
 
-              {/* Switch to sign up */}
-              <TouchableOpacity style={styles.footer}>
+              <TouchableOpacity style={styles.footer} onPress={() => navigation.navigate('SignUp')}>
                 <Text style={styles.footerText}>
                   Nog geen account? <Text style={styles.linkText}>Sign up</Text>
                 </Text>
@@ -192,11 +233,16 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     color: '#777777',
   },
+  rowBetween: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 25,
+  },
+
   checkboxContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 10,
-    marginBottom: 25,
   },
   checkbox: {
     width: 20,
@@ -220,13 +266,13 @@ const styles = StyleSheet.create({
     color: '#00C853',
     fontWeight: '700',
   },
-  signUpButton: {
+  signInButton: {
     backgroundColor: '#00C853',
     borderRadius: 12,
     paddingVertical: 15,
     alignItems: 'center',
   },
-  signUpButtonText: {
+  signInButtonText: {
     color: '#FFF',
     fontSize: 18,
     fontWeight: 'bold',
