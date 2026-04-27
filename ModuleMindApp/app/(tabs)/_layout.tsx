@@ -7,8 +7,8 @@ export default function TabLayout() {
       tabBar={(props) => <CustomTabBar {...props} />}
       screenOptions={{ headerShown: false }}
     >
-      <Tabs.Screen name="home" />
-      <Tabs.Screen name="search" />
+      <Tabs.Screen name="Home" />
+      <Tabs.Screen name="Modules" />
       <Tabs.Screen name="notifications" />
       <Tabs.Screen name="profile" />
     </Tabs>

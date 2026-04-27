@@ -2,11 +2,11 @@ import { View, Pressable, Text, StyleSheet } from 'react-native';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 
-type RouteName = 'home' | 'search' | 'notifications' | 'profile';
+type RouteName = 'Home' | 'Modules' | 'notifications' | 'profile';
 
 const icons: Record<RouteName, keyof typeof Ionicons.glyphMap> = {
-  home: 'home-outline',
-  search: 'search-outline',
+  Home: 'home-outline',
+  Modules: 'book-outline',
   notifications: 'notifications-outline',
   profile: 'person-outline',
 };
