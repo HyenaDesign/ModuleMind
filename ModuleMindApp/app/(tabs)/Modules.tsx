@@ -3,6 +3,7 @@ import { StyleSheet, View, ImageBackground, SafeAreaView, Text, Image, Touchable
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, useFocusEffect, useLocalSearchParams } from 'expo-router'; 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import CustomTabBar from '../../components/CustomTabBar';
 
 // Define the interface for Modules
 interface Module {
@@ -109,6 +110,7 @@ export default function ModulesScreen() {
             )}
           />
         )}
+        <CustomTabBar activeTab="Modules" />
       </SafeAreaView>
     </ImageBackground>
   );

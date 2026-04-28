@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import CustomTabBar from '../components/CustomTabBar';
 
 export default function CreateSubjectScreen() {
   const router = useRouter();
@@ -129,6 +130,7 @@ export default function CreateSubjectScreen() {
           </View>
         </View>
       </KeyboardAvoidingView>
+      <CustomTabBar activeTab="Home" />
     </SafeAreaView>
   );
 }

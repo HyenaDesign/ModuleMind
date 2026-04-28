@@ -1,48 +1,41 @@
 import { View, Pressable, Text, StyleSheet } from 'react-native';
-import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 
-type RouteName = 'Home' | 'Modules' | 'notifications' | 'profile';
+// Define the 4 buttons you want
+const TABS = [
+  { id: 'Home', icon: 'home-outline', label: 'Home', path: '/(tabs)/Home' },
+  { id: 'Modules', icon: 'book-outline', label: 'Modules', path: '/(tabs)/Modules' },
+  { id: 'Search', icon: 'search-outline', label: 'Search', path: '/(tabs)/explore' }, // Mapping Search to explore.tsx
+  { id: 'Profile', icon: 'person-outline', label: 'Profile', path: '/(tabs)/profile' },
+];
 
-const icons: Record<RouteName, keyof typeof Ionicons.glyphMap> = {
-  Home: 'home-outline',
-  Modules: 'book-outline',
-  notifications: 'notifications-outline',
-  profile: 'person-outline',
-};
+interface Props {
+  activeTab?: 'Home' | 'Modules' | 'Search' | 'Profile';
+}
 
-export default function CustomTabBar({
-  state,
-  navigation,
-}: BottomTabBarProps) {
+export default function CustomTabBar({ activeTab }: Props) {
+  const router = useRouter();
+
   return (
     <View style={styles.wrapper}>
       <View style={styles.container}>
-        {state.routes.map((route, index) => {
-          const isFocused = state.index === index;
-
-          const routeName = route.name as RouteName; // ✅ key fix
-
-          const onPress = () => {
-            navigation.navigate(routeName);
-          };
+        {TABS.map((tab) => {
+          const isFocused = activeTab === tab.id;
 
           return (
             <Pressable
-              key={route.key}
-              onPress={onPress}
+              key={tab.id}
+              onPress={() => router.push(tab.path as any)}
               style={[styles.tab, isFocused && styles.activeTab]}
             >
               <Ionicons
-                name={icons[routeName]}
-                size={20}
+                name={tab.icon as any}
+                size={22}
                 color={isFocused ? '#05C925' : '#374151'}
               />
-
               {isFocused && (
-                <Text style={styles.activeText}>
-                  {routeName}
-                </Text>
+                <Text style={styles.activeText}>{tab.label}</Text>
               )}
             </Pressable>
           );
@@ -56,51 +49,41 @@ const styles = StyleSheet.create({
   wrapper: {
     position: 'absolute',
     bottom: 30,
-    width: '100%',
+    left: 0,
+    right: 0,
     alignItems: 'center',
+    backgroundColor: 'transparent',
   },
-
   container: {
-    width: 370,
+    width: '90%',
     height: 70,
     backgroundColor: '#ffffff',
-    borderRadius: 16,
-
+    borderRadius: 20,
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'space-around',
     alignItems: 'center',
-    paddingHorizontal: 10,
-
-    // 🔥 shadow (iOS + Android)
+    // Shadow
     shadowColor: '#000',
-    shadowOpacity: 0.15,
+    shadowOpacity: 0.1,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },
-    elevation: 8,
+    elevation: 5,
   },
-
   tab: {
-    flex: 1,
-    height: 50,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-
-  activeTab: {
-    width: 110,
-    height: 40,
     flexDirection: 'row',
-    justifyContent: 'center',
     alignItems: 'center',
-
-    backgroundColor: '#dcfce7', // light green
-    borderRadius: 26,
+    justifyContent: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  activeTab: {
+    backgroundColor: '#dcfce7',
+    borderRadius: 20,
     gap: 6,
   },
-
   activeText: {
     color: '#05C925',
-    fontWeight: '600',
+    fontWeight: '700',
     fontSize: 14,
   },
 });

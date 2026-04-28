@@ -3,6 +3,7 @@ import { StyleSheet, View, ImageBackground, SafeAreaView, Text, Image, Touchable
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, useFocusEffect } from 'expo-router'; 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import CustomTabBar from '../../components/CustomTabBar';
 
 // Define the interface outside the component
 interface Subject {
@@ -129,6 +130,7 @@ export default function WhiteHeaderPage() {
   )}
 />
         )}
+        <CustomTabBar activeTab="Home" />
       </SafeAreaView>
     </ImageBackground>
   );

@@ -1,15 +1,16 @@
 import { Tabs } from 'expo-router';
-import CustomTabBar from '../../components/CustomTabBar';
 
 export default function TabLayout() {
   return (
-    <Tabs
-      tabBar={(props) => <CustomTabBar {...props} />}
-      screenOptions={{ headerShown: false }}
+    <Tabs 
+      screenOptions={{ 
+        headerShown: false, 
+        tabBarStyle: { display: 'none' } // Hide the native bar
+      }}
     >
       <Tabs.Screen name="Home" />
       <Tabs.Screen name="Modules" />
-      <Tabs.Screen name="notifications" />
+      <Tabs.Screen name="explore" />
       <Tabs.Screen name="profile" />
     </Tabs>
   );

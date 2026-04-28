@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, SafeAreaView, Image } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import CustomTabBar from '../components/CustomTabBar';
 
 export default function CreateModuleScreen() {
   const router = useRouter();
@@ -58,6 +59,7 @@ export default function CreateModuleScreen() {
           </TouchableOpacity>
         </View>
       </View>
+      <CustomTabBar activeTab="Modules" />
     </SafeAreaView>
   );
 }
