@@ -102,23 +102,32 @@ export default function WhiteHeaderPage() {
           </View>
         ) : (
           <FlatList
-            data={subjects}
-            keyExtractor={(item) => item.id.toString()}
-            contentContainerStyle={styles.listContainer}
-            renderItem={({ item }) => (
-              <TouchableOpacity style={styles.subjectCard}>
-                <View style={styles.subjectIconPlaceholder}>
-                  <Text style={styles.subjectEmoji}>📚</Text>
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.subjectTitleText}>{item.title}</Text>
-                  <Text style={styles.subjectSubText} numberOfLines={1}>
-                    {item.description || "Geen beschrijving"}
-                  </Text>
-                </View>
-              </TouchableOpacity>
-            )}
-          />
+  data={subjects}
+  keyExtractor={(item) => item.id.toString()}
+  contentContainerStyle={styles.listContainer}
+  renderItem={({ item }) => (
+    <TouchableOpacity 
+      style={styles.subjectCard} 
+      onPress={() => router.push({
+        pathname: '/Modules', // Path to your modules file
+        params: { 
+          subjectId: item.id, 
+          subjectTitle: item.title 
+        }
+      })}
+    >
+      <View style={styles.subjectIconPlaceholder}>
+        <Text style={styles.subjectEmoji}>📚</Text>
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text style={styles.subjectTitleText}>{item.title}</Text>
+        <Text style={styles.subjectSubText} numberOfLines={1}>
+          {item.description || "Geen beschrijving"}
+        </Text>
+      </View>
+    </TouchableOpacity>
+  )}
+/>
         )}
       </SafeAreaView>
     </ImageBackground>
