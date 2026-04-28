@@ -1,175 +1,165 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, SafeAreaView, Image } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { 
+  StyleSheet, View, Text, TouchableOpacity, 
+  SafeAreaView, Image, ActivityIndicator, Alert, ScrollView 
+} from 'react-native';
+import * as DocumentPicker from 'expo-document-picker';
 import CustomTabBar from '../components/CustomTabBar';
 
 export default function CreateModuleScreen() {
-  const router = useRouter();
-  const { subjectId } = useLocalSearchParams(); // To link the module to the subject
-  const [selectedModel, setSelectedModel] = useState('GPT-4o');
+  const [file, setFile] = useState<DocumentPicker.DocumentPickerResult | null>(null);
+  const [selectedModel, setSelectedModel] = useState('gpt-4o');
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const pickDocument = async () => {
+  try {
+    const result = await DocumentPicker.getDocumentAsync({
+      type: [
+        "application/pdf",                                          // PDF
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document", // .docx
+        "application/msword",                                       // .doc
+        "text/plain",                                               // .txt
+      ],
+      copyToCacheDirectory: true,
+    });
+
+    if (!result.canceled && result.assets && result.assets.length > 0) {
+      setFile(result);
+      console.log("File selected:", result.assets[0].name);
+    }
+  } catch (err) {
+    Alert.alert("Fout", "Kon bestand niet laden.");
+  }
+};
+const handleGenerateAI = async () => {
+  if (!file || !file.assets || file.assets.length === 0) {
+    Alert.alert("Wacht even", "Upload eerst een bestand.");
+    return;
+  }
+
+  setIsProcessing(true);
+  
+  try {
+    const selectedFile = file.assets[0];
+    const formData = new FormData();
+
+    // WEB FIX: Fetch the file URI and convert it to a Blob
+    const responseFile = await fetch(selectedFile.uri);
+    const blob = await responseFile.blob();
+
+    // Append the actual binary blob
+    formData.append('file', blob, selectedFile.name);
+    formData.append('model', selectedModel);
+
+    const response = await fetch('http://192.168.0.254:3000/generate-quiz', {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'Accept': 'application/json',
+        // DO NOT set Content-Type header; let the browser/app set the boundary automatically
+      },
+    });
+
+    const data = await response.json();
+
+    if (response.ok) {
+      console.log("✅ AI Questions:", data);
+      Alert.alert("Succes", "Check de console voor de vragen!");
+    } else {
+      console.error("❌ Server Error:", data.message);
+      Alert.alert("Fout", data.message);
+    }
+  } catch (error) {
+    console.error("❌ Fetch Error:", error);
+    Alert.alert("Netwerkfout", "Kan de server niet bereiken.");
+  } finally {
+    setIsProcessing(false);
+  }
+};
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
-        <Text style={styles.title}>Module maken</Text>
+    <View style={{ flex: 1, backgroundColor: '#FFF' }}>
+      <SafeAreaView style={styles.container}>
+        <ScrollView contentContainerStyle={styles.scrollContent}>
+          <Text style={styles.title}>Module maken</Text>
 
-        {/* 1. Upload Section */}
-        <View style={styles.section}>
-          <TouchableOpacity style={styles.uploadBox}>
-            <View style={styles.folderShape}>
-               <Text style={styles.uploadTitle}>1. Upload files</Text>
-               <Text style={styles.uploadSubtitle}>Tik hier om een file op te laden.</Text>
-            </View>
-          </TouchableOpacity>
-        </View>
-
-        {/* 2. Choose Model Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionLabel}>2. Kies model</Text>
-          <View style={styles.modelCard}>
-            <Image 
-              source={{ uri: 'https://upload.wikimedia.org/wikipedia/commons/0/04/ChatGPT_logo.svg' }} 
-              style={styles.modelIcon} 
-            />
-            <View>
-              <Text style={styles.modelName}>OpenAI ChatGPT</Text>
-              <Text style={styles.modelVersion}>5.2</Text>
-            </View>
+          <View style={styles.section}>
+            <Text style={styles.sectionLabel}>1. Upload bestanden</Text>
+            <TouchableOpacity 
+              style={[styles.uploadBox, file ? styles.uploadBoxActive : null]} 
+              onPress={pickDocument}
+            >
+              <View style={styles.folderShape}>
+                <Text style={[styles.uploadTitle, file ? {color: '#05C925'} : null]}>
+                  {file ? "Bestand geladen!" : "Klik om te uploaden"}
+                </Text>
+                <Text style={styles.uploadSubtitle}>
+                  {file?.assets?.[0]?.name ?? "PDF, DOCX of TXT"}
+                </Text>
+              </View>
+            </TouchableOpacity>
           </View>
-        </View>
 
-        {/* Buttons */}
-        <View style={styles.buttonRow}>
-          <TouchableOpacity 
-            style={styles.cancelButton} 
-            onPress={() => router.back()}
-          >
-            <Text style={styles.cancelButtonText}>Annuleer</Text>
-          </TouchableOpacity>
+          <View style={styles.section}>
+            <Text style={styles.sectionLabel}>2. Kies AI Model</Text>
+            <TouchableOpacity 
+              style={[styles.modelCard, selectedModel === 'gpt-4o' && styles.selectedModelCard]}
+              onPress={() => setSelectedModel('gpt-4o')}
+            >
+              <View>
+                <Text style={styles.modelName}>OpenAI GPT-4o</Text>
+                <Text style={styles.modelDesc}>Meest accuraat voor complexe stof</Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={[styles.modelCard, selectedModel === 'gpt-3.5' && styles.selectedModelCard]}
+              onPress={() => setSelectedModel('gpt-3.5')}
+            >
+              <View>
+                <Text style={styles.modelName}>GPT-3.5 Turbo</Text>
+                <Text style={styles.modelDesc}>Sneller voor simpele samenvattingen</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
 
           <TouchableOpacity 
-            style={styles.continueButton}
-            onPress={() => {
-              // Logic to save module to DB would go here
-              console.log("Creating module for subject:", subjectId);
-              router.back();
-            }}
+            style={styles.continueButton} 
+            onPress={handleGenerateAI}
+            disabled={isProcessing}
           >
-            <Text style={styles.continueButtonText}>Doorgaan</Text>
+            {isProcessing ? <ActivityIndicator color="#FFF" /> : <Text style={styles.continueButtonText}>Genereer Vragen</Text>}
           </TouchableOpacity>
-        </View>
-      </View>
+        </ScrollView>
+      </SafeAreaView>
+
       <CustomTabBar activeTab="Modules" />
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
-  content: {
-    padding: 30,
-    flex: 1,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#05C925',
-    marginBottom: 40,
-    marginTop: 20,
-  },
-  section: {
-    marginBottom: 40,
-  },
-  sectionLabel: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#05C925',
-    marginBottom: 20,
-  },
+  container: { flex: 1 },
+  scrollContent: { padding: 30, paddingBottom: 120 },
+  title: { fontSize: 28, fontWeight: 'bold', color: '#05C925', marginBottom: 30, marginTop: 20 },
+  section: { marginBottom: 35 },
+  sectionLabel: { fontSize: 20, fontWeight: 'bold', color: '#05C925', marginBottom: 15 },
   uploadBox: {
-    width: '100%',
-    height: 250,
-    borderWidth: 2,
-    borderColor: '#05C925',
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderStyle: 'solid',
+    width: '100%', height: 180, borderWidth: 2, borderColor: '#EEE', 
+    borderStyle: 'dashed', borderRadius: 25, justifyContent: 'center', alignItems: 'center',
   },
-  folderShape: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  uploadTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#05C925',
-    marginBottom: 10,
-  },
-  uploadSubtitle: {
-    fontSize: 14,
-    color: '#666',
-  },
+  uploadBoxActive: { borderColor: '#05C925', backgroundColor: '#F0FFF4', borderStyle: 'solid' },
+  folderShape: { alignItems: 'center', justifyContent: 'center' }, // Added to fix your error
+  uploadTitle: { fontSize: 18, fontWeight: 'bold', color: '#AAA', marginBottom: 5 },
+  uploadSubtitle: { fontSize: 13, color: '#AAA' },
   modelCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FAFAFA',
-    padding: 20,
-    borderRadius: 15,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    elevation: 2,
+    padding: 18, borderRadius: 15, borderWidth: 1, borderColor: '#EEE', marginBottom: 10, backgroundColor: '#FFF'
   },
-  modelIcon: {
-    width: 40,
-    height: 40,
-    marginRight: 15,
-    resizeMode: 'contain'
+  selectedModelCard: { borderColor: '#05C925', backgroundColor: '#F0FFF4' },
+  modelName: { fontSize: 16, fontWeight: 'bold', color: '#333' },
+  modelDesc: { fontSize: 12, color: '#999' },
+  continueButton: { 
+    backgroundColor: '#05C925', paddingVertical: 18, borderRadius: 15, alignItems: 'center' 
   },
-  modelName: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
-  },
-  modelVersion: {
-    fontSize: 12,
-    color: '#999',
-  },
-  buttonRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 20,
-  },
-  cancelButton: {
-    flex: 1,
-    paddingVertical: 15,
-    borderWidth: 1,
-    borderColor: '#05C925',
-    borderRadius: 10,
-    marginRight: 10,
-    alignItems: 'center',
-  },
-  cancelButtonText: {
-    color: '#05C925',
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-  continueButton: {
-    flex: 1,
-    backgroundColor: '#05C925',
-    paddingVertical: 15,
-    borderRadius: 10,
-    marginLeft: 10,
-    alignItems: 'center',
-  },
-  continueButtonText: {
-    color: '#FFF',
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
+  continueButtonText: { color: '#FFF', fontSize: 18, fontWeight: 'bold' },
 });
