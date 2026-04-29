@@ -34,7 +34,7 @@ export default function CreateSubjectScreen() {
 
     try {
       // replace the IP with your local machine IP
-      const response = await fetch('http://192.168.0.254:3000/subjects', {
+      const response = await fetch('https://modulemind-api.onrender.com/subjects', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

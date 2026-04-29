@@ -53,7 +53,7 @@ export default function CreateModuleScreen() {
       formData.append('file', blob, selectedFile.name);
       formData.append('model', selectedModel);
 
-      const response = await fetch('http://192.168.0.254:3000/generate-quiz', {
+      const response = await fetch('https://modulemind-api.onrender.com/generate-quiz', {
         method: 'POST',
         body: formData,
       });
@@ -105,7 +105,7 @@ export default function CreateModuleScreen() {
 
     setSaving(true);
     try {
-      const response = await fetch('http://192.168.0.254:3000/save-module', {
+      const response = await fetch('https://modulemind-api.onrender.com/save-module', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

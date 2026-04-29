@@ -26,7 +26,7 @@ export default function ModulesScreen() {
       setLoading(true);
       
       // 2. Fetch modules specifically for THIS subject
-      const response = await fetch(`http://192.168.0.254:3000/modules/${subjectId}`);
+      const response = await fetch(`https://modulemind-api.onrender.com/modules/${subjectId}`);
       const data = await response.json();
       
       if (Array.isArray(data)) {

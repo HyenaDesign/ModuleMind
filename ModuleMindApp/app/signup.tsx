@@ -37,7 +37,7 @@ export default function SignUpScreen() {
 
     setLoading(true);
     try {
-      const response = await fetch('http://192.168.0.254:3000/register', {
+      const response = await fetch('https://modulemind-api.onrender.com/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
