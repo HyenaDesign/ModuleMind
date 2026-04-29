@@ -53,7 +53,7 @@ export default function CreateModuleScreen() {
       formData.append('file', blob, selectedFile.name);
       formData.append('model', selectedModel);
 
-      const response = await fetch('https://modulemind-api.onrender.com/generate-quiz', {
+      const response = await fetch('https://modulemindapi-production.up.railway.app/generate-quiz', {
         method: 'POST',
         body: formData,
       });
@@ -105,7 +105,7 @@ export default function CreateModuleScreen() {
 
     setSaving(true);
     try {
-      const response = await fetch('https://modulemind-api.onrender.com/save-module', {
+      const response = await fetch('https://modulemindapi-production.up.railway.app/save-module', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

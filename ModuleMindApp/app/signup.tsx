@@ -37,7 +37,7 @@ export default function SignUpScreen() {
 
     setLoading(true);
     try {
-      const response = await fetch('https://modulemind-api.onrender.com/register', {
+      const response = await fetch('https://modulemindapi-production.up.railway.app/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

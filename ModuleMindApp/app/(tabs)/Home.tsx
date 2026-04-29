@@ -44,7 +44,7 @@ export default function WhiteHeaderPage() {
       }
 
       const user = JSON.parse(userData);
-      const response = await fetch(`https://modulemind-api.onrender.com/subjects/${user.id}`);
+      const response = await fetch(`https://modulemindapi-production.up.railway.app/subjects/${user.id}`);
       const data = await response.json();
       
       if (Array.isArray(data)) {

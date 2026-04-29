@@ -38,7 +38,7 @@ export default function SignInScreen() {
 
     try {
       // REPLACE YOUR_IP with the same IP used in your SignUp
-      const response = await fetch('https://modulemind-api.onrender.com/login', {
+      const response = await fetch('https://modulemindapi-production.up.railway.app/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
