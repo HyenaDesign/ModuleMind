@@ -7,7 +7,7 @@ const TABS = [
   { id: 'Home', icon: 'home-outline', label: 'Home', path: '/(tabs)/Home' },
   { id: 'Modules', icon: 'book-outline', label: 'Modules', path: '/(tabs)/Modules' },
   { id: 'Search', icon: 'search-outline', label: 'Search', path: '/(tabs)/explore' }, // Mapping Search to explore.tsx
-  { id: 'Profile', icon: 'person-outline', label: 'Profile', path: '/(tabs)/profile' },
+  { id: 'Profile', icon: 'person-outline', label: 'Profile', path: '/(tabs)/Profile' },
 ];
 
 interface Props {

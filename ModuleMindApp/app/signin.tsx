@@ -11,10 +11,12 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
-  ActivityIndicator
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons, FontAwesome, AntDesign } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 
 export default function SignInScreen() {
   const navigation = useNavigation<any>();
@@ -47,8 +49,8 @@ export default function SignInScreen() {
       const data = await response.json();
 
       if (response.status === 200) {
-        // SUCCESS: Navigate to your tab navigator
-        // Using 'replace' ensures the user can't "go back" to the login screen
+        await AsyncStorage.setItem('token', data.token);
+        navigation.replace('(tabs)');
         navigation.replace('(tabs)'); 
       } else {
         Alert.alert("Login mislukt", data.message || "Ongeldige inloggegevens.");
