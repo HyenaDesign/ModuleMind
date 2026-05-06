@@ -14,12 +14,12 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons, FontAwesome, AntDesign } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 
 export default function SignInScreen() {
-  const navigation = useNavigation<any>();
+  const router = useRouter();
 
   // --- 1. State for Inputs ---
   const [email, setEmail] = useState('');
@@ -49,9 +49,16 @@ export default function SignInScreen() {
       const data = await response.json();
 
       if (response.status === 200) {
-        await AsyncStorage.setItem('token', data.token);
-        navigation.replace('(tabs)');
-        navigation.replace('(tabs)'); 
+        if (data.token) {
+          await AsyncStorage.setItem('token', data.token);
+        }
+        const loggedInUser = data.user || {};
+        await AsyncStorage.setItem('user', JSON.stringify({
+          ...loggedInUser,
+          name: loggedInUser.name || loggedInUser.full_name || email.split('@')[0],
+          email: loggedInUser.email || data.email || email,
+        }));
+        router.replace('/(tabs)/Home'); 
       } else {
         Alert.alert("Login mislukt", data.message || "Ongeldige inloggegevens.");
       }
@@ -72,7 +79,7 @@ export default function SignInScreen() {
       <View style={styles.overlay} />
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
             <Ionicons name="chevron-back" size={24} color="#555" />
             <Text style={styles.backText}>Terug</Text>
           </TouchableOpacity>
@@ -150,7 +157,7 @@ export default function SignInScreen() {
                 <TouchableOpacity style={styles.socialCircle}><AntDesign name="windows" size={28} color="#00A1F1" /></TouchableOpacity>
               </View>
 
-              <TouchableOpacity style={styles.footer} onPress={() => navigation.navigate('SignUp')}>
+              <TouchableOpacity style={styles.footer} onPress={() => router.push('/signup')}>
                 <Text style={styles.footerText}>
                   Nog geen account? <Text style={styles.linkText}>Sign up</Text>
                 </Text>

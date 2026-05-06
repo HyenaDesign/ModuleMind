@@ -12,10 +12,10 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons, FontAwesome, AntDesign } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useRouter } from 'expo-router';
 
 export default function SignUpScreen() {
-  const navigation = useNavigation<any>();
+  const router = useRouter();
   const [agree, setAgree] = useState(false);
   
   // 1. ADD THESE STATES
@@ -50,11 +50,11 @@ export default function SignUpScreen() {
       const data = await response.json();
       if (response.status === 201) {
         alert("Account aangemaakt!");
-        navigation.navigate('Login');
+        router.push('/signin');
       } else {
         alert(data.message || "Registratie mislukt.");
       }
-    } catch (error) {
+    } catch {
       alert("Netwerkfout. Controleer je IP en server.");
     } finally {
       setLoading(false);
@@ -73,7 +73,7 @@ export default function SignUpScreen() {
       <SafeAreaView style={styles.safeArea}>
         {/* Navigation Bar */}
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
             <Ionicons name="chevron-back" size={24} color="#555" />
             <Text style={styles.backText}>Terug</Text>
           </TouchableOpacity>
@@ -168,7 +168,7 @@ export default function SignUpScreen() {
               </View>
 
               {/* Switch to Login */}
-              <TouchableOpacity style={styles.footer} onPress={() => navigation.navigate('Login')}>
+              <TouchableOpacity style={styles.footer} onPress={() => router.push('/signin')}>
                 <Text style={styles.footerText}>
                     Al een account? <Text style={styles.linkText}>Sign in</Text>
                 </Text>

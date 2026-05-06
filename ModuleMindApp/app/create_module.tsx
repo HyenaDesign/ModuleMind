@@ -34,7 +34,7 @@ export default function CreateModuleScreen() {
       if (!result.canceled && result.assets && result.assets.length > 0) {
         setFile(result);
       }
-    } catch (err) {
+    } catch {
       Alert.alert("Fout", "Kon bestand niet laden.");
     }
   };
@@ -66,7 +66,7 @@ export default function CreateModuleScreen() {
       } else {
         Alert.alert("Fout", data.message || "Genereren mislukt.");
       }
-    } catch (error) {
+    } catch {
       Alert.alert("Netwerkfout", "Kan server niet bereiken.");
     } finally {
       setIsProcessing(false);
@@ -120,7 +120,7 @@ export default function CreateModuleScreen() {
         Alert.alert("Succes", "Je module is opgeslagen!");
         setStep(1); // Reset or Navigate home
       }
-    } catch (error) {
+    } catch {
       Alert.alert("Fout", "Kon module niet opslaan.");
     } finally {
       setSaving(false);

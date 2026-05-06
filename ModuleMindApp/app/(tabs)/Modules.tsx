@@ -2,7 +2,6 @@ import React, { useState, useCallback } from 'react';
 import { StyleSheet, View, ImageBackground, SafeAreaView, Text, Image, TouchableOpacity, FlatList, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, useFocusEffect, useLocalSearchParams } from 'expo-router'; 
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import CustomTabBar from '../../components/CustomTabBar';
 
 // Define the interface for Modules
@@ -21,7 +20,7 @@ export default function ModulesScreen() {
   const [modules, setModules] = useState<Module[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchModules = async () => {
+  const fetchModules = useCallback(async () => {
     try {
       setLoading(true);
       
@@ -41,12 +40,12 @@ export default function ModulesScreen() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [subjectId]);
 
   useFocusEffect(
     useCallback(() => {
       if (subjectId) fetchModules();
-    }, [subjectId])
+    }, [fetchModules, subjectId])
   );
 
   return (

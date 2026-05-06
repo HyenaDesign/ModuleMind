@@ -1,8 +1,9 @@
 import React, { useState, useCallback } from 'react';
-import { StyleSheet, View, ImageBackground, SafeAreaView, Text, Image, TouchableOpacity, FlatList, ActivityIndicator, Alert } from 'react-native';
+import { StyleSheet, View, SafeAreaView, Text, Image, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, useFocusEffect } from 'expo-router'; 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import CustomTabBar from '../../components/CustomTabBar';
 
 const ProfileScreen = () => {
@@ -10,26 +11,25 @@ const ProfileScreen = () => {
   const [userData, setUserData] = useState<{ name: string; email: string } | null>(null);
   const [loading, setLoading] = useState(true);
 
-    const fetchUserData = async () => {
+  const fetchUserData = useCallback(async () => {
     try {
         setLoading(true);
-        const token = await AsyncStorage.getItem('token');
-        if (!token) {
-            console.log("No token found, redirecting to login...");
+        const user = await AsyncStorage.getItem('user');
+        if (!user) {
+            console.log("No user found, redirecting to login...");
             router.replace('/signin');
             return;
         }
-        const response = await fetch('https://modulemindapi-production.up.railway.app/profile', {
-            method: 'GET',
-            headers: { 'Authorization': `Bearer ${token}` },
-        });
-        const data = await response.json();
-        if (response.status === 200) {
-            setUserData(data);
+
+        const data = JSON.parse(user);
+        if (data?.name || data?.full_name || data?.email) {
+            setUserData({
+                name: data.name || data.full_name || 'Naam niet beschikbaar',
+                email: data.email || 'Email niet beschikbaar',
+            });
         } else {
-            console.error("Failed to fetch profile:", data.message);
-            Alert.alert("Fout", "Kan gebruikersgegevens niet ophalen. Probeer opnieuw in te loggen.");
-            router.replace('/signin');
+            console.error("Stored user data is incomplete:", data);
+            Alert.alert("Fout", "Kan gebruikersgegevens niet ophalen.");
         }
     } catch (error) {
         console.error("Error fetching profile:", error);
@@ -37,12 +37,12 @@ const ProfileScreen = () => {
     } finally {
         setLoading(false);
     }
-};
+  }, [router]);
 
   useFocusEffect(
     useCallback(() => {
       fetchUserData();
-    }, [])
+    }, [fetchUserData])
   );
 
     if (loading) {
@@ -53,22 +53,74 @@ const ProfileScreen = () => {
     );
   }
 
-    return (
-    <ImageBackground
-      source={require('../../assets/images/background.jpg')}
+  const handleLogout = async () => {
+    await AsyncStorage.removeItem('token');
+    await AsyncStorage.removeItem('user');
+    router.replace('/signin');
+  };
+
+  return (
+    <LinearGradient
+      colors={['#FFFFFF', '#FFFFFF', '#F2FFD7']}
+      locations={[0, 0.72, 1]}
       style={styles.background}
-        resizeMode="cover"
     >
-      <View style={styles.whiteOverlay} />
       <SafeAreaView style={styles.safeArea}>
-        <View style={styles.profileContainer}>
-          <Image source={require('../../assets/images/profile-placeholder.png')} style={styles.profileImage} />
-          <Text style={styles.name}>{userData?.name || "Naam niet beschikbaar"}</Text>
-            <Text style={styles.email}>{userData?.email || "Email niet beschikbaar"}</Text>
+        <View style={styles.header}>
+          <Text style={styles.headerText}>Profiel</Text>
+        </View>
+
+        <View style={styles.content}>
+          <View style={styles.profileCard}>
+            <Image source={require('../../assets/images/profile-placeholder.png')} style={styles.profileImage} />
+            <Text style={styles.name}>{userData?.name || 'Naam niet beschikbaar'}</Text>
+            <Text style={styles.email}>{userData?.email || 'Email niet beschikbaar'}</Text>
+            <View style={styles.badge}>
+              <Text style={styles.badgeIcon}>!</Text>
+              <Text style={styles.badgeText}>Gratis gebruiker</Text>
+            </View>
+            <TouchableOpacity style={styles.editButton} activeOpacity={0.8}>
+              <Text style={styles.editButtonText}>Bewerk profiel</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.menuGroup}>
+            <TouchableOpacity style={[styles.menuItem, styles.premiumItem]} activeOpacity={0.8}>
+              <MaterialCommunityIcons name="diamond-stone" size={20} color="#444444" />
+              <Text style={styles.menuText}>Wordt premium student</Text>
+              <Ionicons name="arrow-forward" size={20} color="#333333" />
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.menuItem} activeOpacity={0.8}>
+              <Ionicons name="bar-chart-outline" size={20} color="#555555" />
+              <Text style={styles.menuText}>Scores bekijken</Text>
+              <Ionicons name="arrow-forward" size={20} color="#333333" />
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.menuItem} activeOpacity={0.8}>
+              <Ionicons name="language-outline" size={20} color="#555555" />
+              <Text style={styles.menuText}>Taal configureren</Text>
+              <Ionicons name="arrow-forward" size={20} color="#333333" />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.menuGroup}>
+            <TouchableOpacity style={styles.menuItem} activeOpacity={0.8}>
+              <Ionicons name="shield-checkmark-outline" size={20} color="#555555" />
+              <Text style={styles.menuText}>Accountbeveiliging</Text>
+              <Ionicons name="arrow-forward" size={20} color="#333333" />
+            </TouchableOpacity>
+
+            <TouchableOpacity style={[styles.menuItem, styles.logoutItem]} activeOpacity={0.8} onPress={handleLogout}>
+              <Ionicons name="log-out-outline" size={20} color="#444444" />
+              <Text style={styles.menuText}>Log uit</Text>
+              <Ionicons name="arrow-forward" size={20} color="#333333" />
+            </TouchableOpacity>
+          </View>
         </View>
       </SafeAreaView>
-      <CustomTabBar />
-    </ImageBackground>
+      <CustomTabBar activeTab="Profile" />
+    </LinearGradient>
   );
 }
 
@@ -77,42 +129,128 @@ export default ProfileScreen;
 const styles = StyleSheet.create({
   background: {
     flex: 1,
-    },
-    whiteOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(255, 255, 255, 0.5)',
-    },
-    safeArea: {
+  },
+  safeArea: {
     flex: 1,
+  },
+  header: {
+    marginTop: 42,
+    paddingHorizontal: 20,
+    paddingBottom: 14,
+  },
+  headerText: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#05C925',
+  },
+  content: {
+    flex: 1,
+    paddingHorizontal: 22,
+    paddingBottom: 120,
+  },
+  profileCard: {
+    width: '100%',
+    minHeight: 208,
     justifyContent: 'center',
     alignItems: 'center',
-    },
-    profileContainer: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
-    borderRadius: 10,
-    },
-    profileImage: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    marginBottom: 20,
-    },
-    name: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
-    },
-    email: {
+    paddingVertical: 24,
+    paddingHorizontal: 20,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    shadowColor: '#000000',
+    shadowOpacity: 0.14,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 8,
+  },
+  profileImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 38,
+    marginBottom: 10,
+  },
+  name: {
     fontSize: 16,
-    color: '#666',
-    marginTop: 5,
-    },
-    loadingContainer: {
+    fontWeight: '800',
+    color: '#111111',
+  },
+  email: {
+    fontSize: 13,
+    color: '#555555',
+    marginTop: 2,
+  },
+  badge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#FFF4B8',
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 5,
+    marginTop: 8,
+  },
+  badgeIcon: {
+    color: '#FFB000',
+    fontWeight: '900',
+    fontSize: 12,
+  },
+  badgeText: {
+    color: '#FF9900',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  editButton: {
+    marginTop: 12,
+    backgroundColor: '#05C925',
+    borderRadius: 6,
+    minWidth: 126,
+    height: 42,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  editButtonText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  menuGroup: {
+    marginTop: 30,
+    gap: 8,
+  },
+  menuItem: {
+    minHeight: 45,
+    borderWidth: 1,
+    borderColor: '#DDDDDD',
+    borderRadius: 6,
+    backgroundColor: '#FFFFFF',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    gap: 16,
+    shadowColor: '#000000',
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 1 },
+    elevation: 1,
+  },
+  premiumItem: {
+    borderColor: '#05C925',
+    backgroundColor: '#F4FFF8',
+  },
+  logoutItem: {
+    borderColor: '#FF6B6B',
+    backgroundColor: '#FFF5F5',
+  },
+  menuText: {
+    flex: 1,
+    color: '#555555',
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    },
+    backgroundColor: '#FFFFFF',
+  },
 });
