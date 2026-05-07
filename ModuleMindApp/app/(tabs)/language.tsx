@@ -10,6 +10,13 @@ const LanguageScreen = () => {
     const router = useRouter();
     const [userData, setUserData] = useState<{ name: string; email: string } | null>(null);
     const [loading, setLoading] = useState(true);
+    const languages = [
+  { key: 'nl', label: 'Nederlands', flag: '🇳🇱' },
+  { key: 'en', label: 'Engels', flag: '🇬🇧' },
+  { key: 'fr', label: 'Frans', flag: '🇫🇷' },
+  { key: 'de', label: 'Duits', flag: '🇩🇪' },
+];
+const [selectedLanguage, setSelectedLanguage] = useState('nl');
 
     const fetchUserData = useCallback(async () => {
         try {
@@ -73,13 +80,39 @@ const LanguageScreen = () => {
                 <Text style={styles.headerText}>Taal configureren</Text>
             </View>
             <View style={styles.menuGroup}>
-                <TouchableOpacity style={styles.menuItem} activeOpacity={0.8}
-                onPress={() => Alert.alert("Taal wijzigen", "Deze functie is nog niet geïmplementeerd.")}>
-                    <Ionicons name="language-outline" size={20} color="#555555" />
-                    <Text style={styles.menuText}>Nederlands</Text>
-                    <Ionicons name="arrow-forward" size={20} color="#333333" />
-                </TouchableOpacity>
-            </View>
+  {languages.map((lang) => {
+    const isActive = selectedLanguage === lang.key;
+
+    return (
+      <TouchableOpacity
+        key={lang.key}
+        style={[
+          styles.menuItem,
+          isActive && styles.activeItem
+        ]}
+        activeOpacity={0.8}
+        onPress={() => setSelectedLanguage(lang.key)}
+      >
+        <Text style={styles.flag}>{lang.flag}</Text>
+
+        <Text
+          style={[
+            styles.menuText,
+            isActive && styles.activeText
+          ]}
+        >
+          {lang.label}
+        </Text>
+
+        <Ionicons
+          name="arrow-forward"
+          size={20}
+          color={isActive ? '#05C925' : '#999999'}
+        />
+      </TouchableOpacity>
+    );
+  })}
+</View>
             <CustomTabBar />
         </SafeAreaView>
         </ImageBackground>
@@ -94,7 +127,7 @@ const styles = StyleSheet.create({
     gradient: { ...StyleSheet.absoluteFillObject },
     container: {
         flex: 1,
-        backgroundColor: '#fff',
+        backgroundColor: 'transparent',
     },
     header: {
     marginTop: 42,
@@ -114,14 +147,19 @@ const styles = StyleSheet.create({
     menuGroup: {
         marginBottom: 30,
         alignItems: 'center',
+        gap: 10,
     },
     menuItem: {
         flexDirection: 'row',
         alignItems: 'center',
         paddingVertical: 15,
         width: '85%',
-        backgroundColor: '#E9FBEF',
+        backgroundColor: '#ffffff',
         paddingHorizontal: 20,
+        minHeight: 45,
+        borderWidth: 2,
+        borderColor: '#E6E6E6',
+        borderRadius: 6,
     },
     menuText: {
         flex: 1,
@@ -136,6 +174,18 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
+    },
+    activeItem: {
+    backgroundColor: '#E9FBEF',
+    borderColor: '#05C925',
+    },
+
+    activeText: {
+    color: '#05C925',
+    fontWeight: '600',
+    },
+    flag: {
+    fontSize: 20,
     },
 });
 
