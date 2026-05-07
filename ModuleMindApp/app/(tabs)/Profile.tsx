@@ -97,7 +97,8 @@ const ProfileScreen = () => {
               <Ionicons name="arrow-forward" size={20} color="#333333" />
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.menuItem} activeOpacity={0.8}>
+            <TouchableOpacity style={styles.menuItem} activeOpacity={0.8}
+            onPress={() => router.push('/(tabs)/language')}>
               <Ionicons name="language-outline" size={20} color="#555555" />
               <Text style={styles.menuText}>Taal configureren</Text>
               <Ionicons name="arrow-forward" size={20} color="#333333" />
