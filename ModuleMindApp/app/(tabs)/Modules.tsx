@@ -44,7 +44,12 @@ export default function ModulesScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      if (subjectId) fetchModules();
+      if (subjectId) {
+        fetchModules();
+      } else {
+        setModules([]);
+        setLoading(false);
+      }
     }, [fetchModules, subjectId])
   );
 
@@ -70,8 +75,15 @@ export default function ModulesScreen() {
             <Text style={styles.headerText}>{subjectTitle || 'Modules'}</Text>
           </View>
           
-          {/* Change this to your Create Module path later */}
-          <TouchableOpacity onPress={() => router.push('/create_module')}>
+          <TouchableOpacity
+            onPress={() => router.push({
+              pathname: '/create_module',
+              params: {
+                subjectId,
+                subjectTitle,
+              },
+            })}
+          >
             <Text style={styles.headerIcon}>+</Text>
           </TouchableOpacity>
         </View>

@@ -5,9 +5,15 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import CustomTabBar from '../components/CustomTabBar';
 
 export default function CreateModuleScreen() {
+  const router = useRouter();
+  const { subjectId, subjectTitle } = useLocalSearchParams();
+  const selectedSubjectId = Array.isArray(subjectId) ? subjectId[0] : subjectId;
+  const selectedSubjectTitle = Array.isArray(subjectTitle) ? subjectTitle[0] : subjectTitle;
+
   // Navigation & Loading State
   const [step, setStep] = useState(1); // 1: Upload, 2: Review, 3: Finalize
   const [isProcessing, setIsProcessing] = useState(false);
@@ -102,6 +108,12 @@ export default function CreateModuleScreen() {
       Alert.alert("Oeps", "Geef je module eerst een titel.");
       return;
     }
+    const subjectIdNumber = Number(selectedSubjectId);
+    if (!selectedSubjectId || Number.isNaN(subjectIdNumber)) {
+      Alert.alert("Fout", "Open eerst een vak voordat je een module maakt.");
+      router.replace('/(tabs)/Home');
+      return;
+    }
 
     setSaving(true);
     try {
@@ -109,7 +121,7 @@ export default function CreateModuleScreen() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          subject_id: 8, // Change this to dynamic subject ID if needed
+          subject_id: subjectIdNumber,
           title: moduleTitle,
           description: moduleDesc,
           questions: questions
@@ -118,7 +130,7 @@ export default function CreateModuleScreen() {
 
       if (response.ok) {
         Alert.alert("Succes", "Je module is opgeslagen!");
-        setStep(1); // Reset or Navigate home
+        router.back();
       }
     } catch {
       Alert.alert("Fout", "Kon module niet opslaan.");
@@ -135,7 +147,7 @@ export default function CreateModuleScreen() {
           {/* --- STEP 1: UPLOAD --- */}
           {step === 1 && (
             <>
-              <Text style={styles.title}>Module maken</Text>
+              <Text style={styles.title}>{selectedSubjectTitle ? `Module maken voor ${selectedSubjectTitle}` : "Module maken"}</Text>
               <View style={styles.section}>
                 <Text style={styles.sectionLabel}>1. Upload bestanden</Text>
                 <TouchableOpacity 
@@ -240,7 +252,7 @@ export default function CreateModuleScreen() {
           {/* --- STEP 3: FINALIZE (afbeelding_7.png) --- */}
           {step === 3 && (
             <View style={{ marginTop: 20 }}>
-              <Text style={styles.title}>Module maken</Text>
+              <Text style={styles.title}>{selectedSubjectTitle ? `Module maken voor ${selectedSubjectTitle}` : "Module maken"}</Text>
 
               <View style={styles.imageUploadPlaceholder}>
                 <Ionicons name="image-outline" size={50} color="#CCC" />

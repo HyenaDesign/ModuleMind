@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import CustomTabBar from '../components/CustomTabBar';
 
 export default function CreateSubjectScreen() {
@@ -33,6 +34,21 @@ export default function CreateSubjectScreen() {
     setLoading(true);
 
     try {
+      const userData = await AsyncStorage.getItem('user');
+      if (!userData) {
+        Alert.alert("Fout", "Log opnieuw in voordat je een vak aanmaakt.");
+        router.replace('/signin');
+        return;
+      }
+
+      const user = JSON.parse(userData);
+      const userId = user.id || user.user_id;
+      if (!userId) {
+        Alert.alert("Fout", "Kan de huidige gebruiker niet vinden. Log opnieuw in.");
+        router.replace('/signin');
+        return;
+      }
+
       // replace the IP with your local machine IP
       const response = await fetch('https://modulemindapi-production.up.railway.app/subjects', {
         method: 'POST',
@@ -40,7 +56,7 @@ export default function CreateSubjectScreen() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          user_id: 1, // Placeholder: replace with real user ID later
+          user_id: userId,
           title: subjectTitle,
           description: subjectDescription,
         }),

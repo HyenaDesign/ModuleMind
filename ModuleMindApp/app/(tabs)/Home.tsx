@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { StyleSheet, View, ImageBackground, SafeAreaView, Text, Image, TouchableOpacity, FlatList, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, useFocusEffect } from 'expo-router'; 
@@ -19,32 +19,26 @@ export default function WhiteHeaderPage() {
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // --- DEVELOPER BYPASS: Auto-login for testing ---
-  useEffect(() => {
-    const checkUser = async () => {
-      const userData = await AsyncStorage.getItem('user');
-      if (!userData) {
-        // Manually setting user 1 so the app doesn't get stuck
-        await AsyncStorage.setItem('user', JSON.stringify({ id: 1, name: 'Admin' }));
-        console.log("Logged in as User 1 (Bypass)");
-        fetchSubjects();
-      }
-    };
-    checkUser();
-  }, []);
-
-  const fetchSubjects = async () => {
+  const fetchSubjects = useCallback(async () => {
     try {
       setLoading(true);
       const userData = await AsyncStorage.getItem('user');
       
       if (!userData) {
         setSubjects([]);
+        router.replace('/signin');
         return;
       }
 
       const user = JSON.parse(userData);
-      const response = await fetch(`https://modulemindapi-production.up.railway.app/subjects/${user.id}`);
+      const userId = user.id || user.user_id;
+      if (!userId) {
+        setSubjects([]);
+        router.replace('/signin');
+        return;
+      }
+
+      const response = await fetch(`https://modulemindapi-production.up.railway.app/subjects/${userId}`);
       const data = await response.json();
       
       if (Array.isArray(data)) {
@@ -59,12 +53,12 @@ export default function WhiteHeaderPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [router]);
 
   useFocusEffect(
     useCallback(() => {
       fetchSubjects();
-    }, [])
+    }, [fetchSubjects])
   );
 
   return (

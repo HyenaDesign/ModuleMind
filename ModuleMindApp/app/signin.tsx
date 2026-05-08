@@ -55,6 +55,7 @@ export default function SignInScreen() {
         const loggedInUser = data.user || {};
         await AsyncStorage.setItem('user', JSON.stringify({
           ...loggedInUser,
+          id: loggedInUser.id || loggedInUser.user_id || data.id || data.user_id,
           name: loggedInUser.name || loggedInUser.full_name || email.split('@')[0],
           email: loggedInUser.email || data.email || email,
         }));

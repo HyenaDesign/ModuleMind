@@ -1,14 +1,13 @@
 import React, {useState, useCallback} from "react";
-import { StyleSheet, View, SafeAreaView, Text, Image, TouchableOpacity, ActivityIndicator, Alert, ImageBackground } from 'react-native';
+import { StyleSheet, View, SafeAreaView, Text, TouchableOpacity, ActivityIndicator, Alert, ImageBackground } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, useFocusEffect } from 'expo-router'; 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import CustomTabBar from '../../components/CustomTabBar';
 
 const LanguageScreen = () => {
     const router = useRouter();
-    const [userData, setUserData] = useState<{ name: string; email: string } | null>(null);
     const [loading, setLoading] = useState(true);
     const languages = [
   { key: 'nl', label: 'Nederlands', flag: '🇳🇱' },
@@ -29,12 +28,7 @@ const [selectedLanguage, setSelectedLanguage] = useState('nl');
             }
 
             const data = JSON.parse(user);
-            if (data?.name || data?.full_name || data?.email) {
-                setUserData({
-                    name: data.name || data.full_name || 'Naam niet beschikbaar',
-                    email: data.email || 'Email niet beschikbaar',
-                });
-            } else {
+            if (!data?.name && !data?.full_name && !data?.email) {
                 console.error("Stored user data is incomplete:", data);
                 Alert.alert("Fout", "Kan gebruikersgegevens niet ophalen.");
             }
@@ -113,7 +107,7 @@ const [selectedLanguage, setSelectedLanguage] = useState('nl');
     );
   })}
 </View>
-            <CustomTabBar />
+            <CustomTabBar activeTab="Profile" />
         </SafeAreaView>
         </ImageBackground>
     );
