@@ -6,6 +6,8 @@ export default function RootLayout() {
       {/* These screens will NOT have a navbar */}
       <Stack.Screen name="signin" />
       <Stack.Screen name="signup" />
+      <Stack.Screen name="quiz" />
+      <Stack.Screen name="scores" />
       
       {/* This name matches the folder (tabs) */}
       <Stack.Screen name="(tabs)" /> 

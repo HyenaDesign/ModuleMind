@@ -91,7 +91,11 @@ const ProfileScreen = () => {
               <Ionicons name="arrow-forward" size={20} color="#333333" />
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.menuItem} activeOpacity={0.8}>
+            <TouchableOpacity
+              style={styles.menuItem}
+              activeOpacity={0.8}
+              onPress={() => router.push('/scores')}
+            >
               <Ionicons name="bar-chart-outline" size={20} color="#555555" />
               <Text style={styles.menuText}>Scores bekijken</Text>
               <Ionicons name="arrow-forward" size={20} color="#333333" />

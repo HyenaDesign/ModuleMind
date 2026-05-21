@@ -6,7 +6,59 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import CustomTabBar from '../components/CustomTabBar';
+
+type QuizQuestion = {
+  question: string;
+  options: string[];
+  correctAnswer: string;
+};
+
+const asString = (value: unknown) => String(value ?? '').trim();
+
+const normalizeOptions = (rawOptions: unknown) => {
+  if (Array.isArray(rawOptions)) {
+    return rawOptions.map(asString).filter(Boolean);
+  }
+
+  if (rawOptions && typeof rawOptions === 'object') {
+    return Object.values(rawOptions).map(asString).filter(Boolean);
+  }
+
+  if (typeof rawOptions === 'string') {
+    try {
+      const parsedOptions = JSON.parse(rawOptions);
+      return normalizeOptions(parsedOptions);
+    } catch {
+      return rawOptions
+        .split(/\r?\n|,/)
+        .map((option) => option.replace(/^[A-Da-d][).:\-\s]+/, '').trim())
+        .filter(Boolean);
+    }
+  }
+
+  return [];
+};
+
+const normalizeQuestions = (rawQuestions: unknown): QuizQuestion[] => {
+  if (!Array.isArray(rawQuestions)) return [];
+
+  return rawQuestions
+    .map((item) => {
+      const record = item as Record<string, unknown>;
+      const options = normalizeOptions(record.options).length > 0
+        ? normalizeOptions(record.options)
+        : [record.option_a, record.option_b, record.option_c, record.option_d].map(asString).filter(Boolean);
+
+      return {
+        question: asString(record.question || record.title || record.prompt),
+        options,
+        correctAnswer: asString(record.correctAnswer || record.correct_answer || record.answer),
+      };
+    })
+    .filter((question) => question.question && question.options.length > 0 && question.correctAnswer);
+};
 
 export default function CreateModuleScreen() {
   const router = useRouter();
@@ -22,7 +74,7 @@ export default function CreateModuleScreen() {
   // Data State
   const [file, setFile] = useState<DocumentPicker.DocumentPickerResult | null>(null);
   const [selectedModel, setSelectedModel] = useState('gpt-4o');
-  const [questions, setQuestions] = useState<any[]>([]);
+  const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
 
   // Step 3 Metadata State (afbeelding_7.png)
@@ -67,7 +119,14 @@ export default function CreateModuleScreen() {
       const data = await response.json();
 
       if (response.ok && data.questions) {
-        setQuestions(data.questions);
+        const normalizedQuestions = normalizeQuestions(data.questions);
+
+        if (normalizedQuestions.length === 0) {
+          Alert.alert("Fout", "De gegenereerde vragen hebben geen geldig formaat.");
+          return;
+        }
+
+        setQuestions(normalizedQuestions);
         setStep(2);
       } else {
         Alert.alert("Fout", data.message || "Genereren mislukt.");
@@ -129,6 +188,34 @@ export default function CreateModuleScreen() {
       });
 
       if (response.ok) {
+        const responseText = await response.text();
+        let data: any = {};
+
+        try {
+          data = responseText ? JSON.parse(responseText) : {};
+        } catch {
+          data = {};
+        }
+
+        const savedModuleId = data.id || data.module_id || data.module?.id;
+        const cachedModule = {
+          id: savedModuleId || null,
+          subject_id: subjectIdNumber,
+          title: moduleTitle,
+          description: moduleDesc,
+          questions,
+          subjectTitle: selectedSubjectTitle,
+        };
+
+        await AsyncStorage.setItem(
+          `moduleQuestions:${subjectIdNumber}:${moduleTitle.trim().toLowerCase()}`,
+          JSON.stringify(cachedModule)
+        );
+
+        if (savedModuleId) {
+          await AsyncStorage.setItem(`moduleQuestionsById:${savedModuleId}`, JSON.stringify(cachedModule));
+        }
+
         Alert.alert("Succes", "Je module is opgeslagen!");
         router.back();
       }
@@ -202,14 +289,9 @@ export default function CreateModuleScreen() {
               <View style={styles.divider} />
 
               <View style={styles.optionsList}>
-                {questions[currentIndex].options.map((opt: any, i: number) => {
-  const rawCorrect = questions[currentIndex].correctAnswer || 
-                     questions[currentIndex].correct_answer || 
-                     questions[currentIndex].answer;
-
-  // Convert both to String to prevent .trim() crashes if AI returns numbers
+                {questions[currentIndex].options.map((opt, i) => {
   const optStr = String(opt || "");
-  const correctStr = String(rawCorrect || "");
+  const correctStr = String(questions[currentIndex].correctAnswer || "");
 
   const isCorrect = optStr.trim().toLowerCase() === correctStr.trim().toLowerCase();
 

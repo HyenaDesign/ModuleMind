@@ -2,6 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { StyleSheet, View, ImageBackground, SafeAreaView, Text, Image, TouchableOpacity, FlatList, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, useFocusEffect, useLocalSearchParams } from 'expo-router'; 
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import CustomTabBar from '../../components/CustomTabBar';
 
 // Define the interface for Modules
@@ -10,12 +11,39 @@ interface Module {
   subject_id: number;
   title: string;
   description: string | null;
+  questions?: unknown;
 }
+
+const getParam = (value: string | string[] | undefined) => Array.isArray(value) ? value[0] : value;
+
+const getCachedModule = async (module: Module) => {
+  const cachedById = await AsyncStorage.getItem(`moduleQuestionsById:${module.id}`);
+  const cachedByTitle = await AsyncStorage.getItem(
+    `moduleQuestions:${module.subject_id}:${module.title.trim().toLowerCase()}`
+  );
+  const cachedModule = cachedById || cachedByTitle;
+
+  if (!cachedModule) return module;
+
+  try {
+    return {
+      ...module,
+      ...JSON.parse(cachedModule),
+      id: module.id,
+      subject_id: module.subject_id,
+      title: module.title,
+      description: module.description,
+    };
+  } catch {
+    return module;
+  }
+};
 
 export default function ModulesScreen() {
   const router = useRouter();
   // 1. Get the subject info passed from the Home screen
   const { subjectId, subjectTitle } = useLocalSearchParams();
+  const selectedSubjectTitle = getParam(subjectTitle);
   
   const [modules, setModules] = useState<Module[]>([]);
   const [loading, setLoading] = useState(true);
@@ -29,7 +57,8 @@ export default function ModulesScreen() {
       const data = await response.json();
       
       if (Array.isArray(data)) {
-        setModules(data);
+        const hydratedModules = await Promise.all(data.map(getCachedModule));
+        setModules(hydratedModules);
       } else {
         console.error("Backend Error:", data.message);
         setModules([]);
@@ -106,7 +135,21 @@ export default function ModulesScreen() {
             renderItem={({ item }) => (
               <TouchableOpacity 
                 style={styles.moduleCard}
-                onPress={() => console.log("Module tapped:", item.id)}
+                onPress={async () => {
+                  await AsyncStorage.setItem('selectedModule', JSON.stringify({
+                    ...item,
+                    subjectTitle: selectedSubjectTitle,
+                  }));
+                  router.push({
+                    pathname: '/quiz',
+                    params: {
+                      moduleId: item.id,
+                      moduleTitle: item.title,
+                      subjectId: item.subject_id,
+                      subjectTitle: selectedSubjectTitle,
+                    },
+                  });
+                }}
               >
                 <View style={styles.moduleIconPlaceholder}>
                   <Text style={styles.moduleEmoji}>🧩</Text>
