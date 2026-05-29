@@ -1,21 +1,29 @@
+import { useCallback, useState } from 'react';
 import { View, Pressable, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { getStoredLanguage, LanguageKey, translate } from '../constants/language';
 
-// Define the 4 buttons you want
 const TABS = [
-  { id: 'Home', icon: 'home-outline', label: 'Home', path: '/(tabs)/Home' },
-  { id: 'Modules', icon: 'book-outline', label: 'Modules', path: '/(tabs)/Modules' },
-  { id: 'Search', icon: 'search-outline', label: 'Search', path: '/(tabs)/explore' }, // Mapping Search to explore.tsx
-  { id: 'Profile', icon: 'person-outline', label: 'Profile', path: '/(tabs)/Profile' },
-];
+  { id: 'Home', icon: 'home-outline', labelKey: 'home', path: '/(tabs)/Home' },
+  { id: 'Modules', icon: 'book-outline', labelKey: 'modules', path: '/(tabs)/Modules' },
+  { id: 'Search', icon: 'search-outline', labelKey: 'search', path: '/(tabs)/explore' },
+  { id: 'Profile', icon: 'person-outline', labelKey: 'profile', path: '/(tabs)/Profile' },
+] as const;
 
 interface Props {
-  activeTab?: 'Home' | 'Modules' | 'Search' | 'Profile';
+  activeTab?: typeof TABS[number]['id'];
 }
 
 export default function CustomTabBar({ activeTab }: Props) {
   const router = useRouter();
+  const [language, setLanguage] = useState<LanguageKey>('nl');
+
+  useFocusEffect(
+    useCallback(() => {
+      getStoredLanguage().then(setLanguage);
+    }, [])
+  );
 
   return (
     <View style={styles.wrapper}>
@@ -35,7 +43,7 @@ export default function CustomTabBar({ activeTab }: Props) {
                 color={isFocused ? '#05C925' : '#374151'}
               />
               {isFocused && (
-                <Text style={styles.activeText}>{tab.label}</Text>
+                <Text style={styles.activeText}>{translate(language, tab.labelKey)}</Text>
               )}
             </Pressable>
           );
@@ -62,7 +70,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
-    // Shadow
     shadowColor: '#000',
     shadowOpacity: 0.1,
     shadowRadius: 10,

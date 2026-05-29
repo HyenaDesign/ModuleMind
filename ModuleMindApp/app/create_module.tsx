@@ -1,13 +1,16 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   StyleSheet, View, Text, TouchableOpacity, 
-  SafeAreaView, ActivityIndicator, Alert, ScrollView, TextInput 
+  SafeAreaView, ActivityIndicator, ScrollView, TextInput 
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import AppMessage from '../components/AppMessage';
 import CustomTabBar from '../components/CustomTabBar';
+import { FREE_MODULE_LIMIT, getStoredUser, isPremiumUser } from '../constants/account';
+import { getStoredLanguage, LanguageKey, translate } from '../constants/language';
 
 type QuizQuestion = {
   question: string;
@@ -62,9 +65,11 @@ const normalizeQuestions = (rawQuestions: unknown): QuizQuestion[] => {
 
 export default function CreateModuleScreen() {
   const router = useRouter();
-  const { subjectId, subjectTitle } = useLocalSearchParams();
+  const { subjectId, subjectTitle, moduleCount, isPremium: premiumParam } = useLocalSearchParams();
   const selectedSubjectId = Array.isArray(subjectId) ? subjectId[0] : subjectId;
   const selectedSubjectTitle = Array.isArray(subjectTitle) ? subjectTitle[0] : subjectTitle;
+  const currentModuleCount = Number(Array.isArray(moduleCount) ? moduleCount[0] : moduleCount || 0);
+  const isPremiumFromParams = (Array.isArray(premiumParam) ? premiumParam[0] : premiumParam) === 'true';
 
   // Navigation & Loading State
   const [step, setStep] = useState(1); // 1: Upload, 2: Review, 3: Finalize
@@ -80,6 +85,26 @@ export default function CreateModuleScreen() {
   // Step 3 Metadata State (afbeelding_7.png)
   const [moduleTitle, setModuleTitle] = useState('');
   const [moduleDesc, setModuleDesc] = useState('');
+  const [language, setLanguage] = useState<LanguageKey>('nl');
+  const [message, setMessage] = useState<{ text: string; tone: 'error' | 'warning' | 'success' } | null>(null);
+  const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
+
+  useEffect(() => {
+    getStoredLanguage().then(setLanguage);
+  }, []);
+
+  const ensureStorageAvailable = async () => {
+    const user = await getStoredUser();
+    const premium = isPremiumFromParams || isPremiumUser(user);
+
+    if (!premium && currentModuleCount >= FREE_MODULE_LIMIT) {
+      setMessage({ text: t('storageLimitReached'), tone: 'warning' });
+      router.push('/premium');
+      return false;
+    }
+
+    return true;
+  };
 
   // --- STEP 1 LOGIC: PICK FILE ---
   const pickDocument = async () => {
@@ -93,13 +118,14 @@ export default function CreateModuleScreen() {
         setFile(result);
       }
     } catch {
-      Alert.alert("Fout", "Kon bestand niet laden.");
+      setMessage({ text: t('fileLoadFailed'), tone: 'error' });
     }
   };
 
   // --- STEP 1 LOGIC: GENERATE AI ---
   const handleGenerateAI = async () => {
     if (!file || !file.assets) return;
+    if (!(await ensureStorageAvailable())) return;
     setIsProcessing(true);
     
     try {
@@ -122,17 +148,17 @@ export default function CreateModuleScreen() {
         const normalizedQuestions = normalizeQuestions(data.questions);
 
         if (normalizedQuestions.length === 0) {
-          Alert.alert("Fout", "De gegenereerde vragen hebben geen geldig formaat.");
+          setMessage({ text: t('invalidGeneratedQuestions'), tone: 'error' });
           return;
         }
 
         setQuestions(normalizedQuestions);
         setStep(2);
       } else {
-        Alert.alert("Fout", data.message || "Genereren mislukt.");
+        setMessage({ text: data.message || t('generationFailed'), tone: 'error' });
       }
     } catch {
-      Alert.alert("Netwerkfout", "Kan server niet bereiken.");
+      setMessage({ text: t('noInternet'), tone: 'warning' });
     } finally {
       setIsProcessing(false);
     }
@@ -164,15 +190,16 @@ export default function CreateModuleScreen() {
   // --- STEP 3 LOGIC: SAVE TO DB ---
   const handleSaveModule = async () => {
     if (!moduleTitle.trim()) {
-      Alert.alert("Oeps", "Geef je module eerst een titel.");
+      setMessage({ text: t('moduleTitleRequired'), tone: 'warning' });
       return;
     }
     const subjectIdNumber = Number(selectedSubjectId);
     if (!selectedSubjectId || Number.isNaN(subjectIdNumber)) {
-      Alert.alert("Fout", "Open eerst een vak voordat je een module maakt.");
+      setMessage({ text: t('subjectRequired'), tone: 'warning' });
       router.replace('/(tabs)/Home');
       return;
     }
+    if (!(await ensureStorageAvailable())) return;
 
     setSaving(true);
     try {
@@ -216,11 +243,11 @@ export default function CreateModuleScreen() {
           await AsyncStorage.setItem(`moduleQuestionsById:${savedModuleId}`, JSON.stringify(cachedModule));
         }
 
-        Alert.alert("Succes", "Je module is opgeslagen!");
+        setMessage({ text: t('moduleSaved'), tone: 'success' });
         router.back();
       }
     } catch {
-      Alert.alert("Fout", "Kon module niet opslaan.");
+      setMessage({ text: t('moduleSaveFailed'), tone: 'error' });
     } finally {
       setSaving(false);
     }
@@ -230,6 +257,7 @@ export default function CreateModuleScreen() {
     <View style={{ flex: 1, backgroundColor: '#FFF' }}>
       <SafeAreaView style={styles.container}>
         <ScrollView contentContainerStyle={styles.scrollContent}>
+          {message && <AppMessage tone={message.tone} message={message.text} />}
           
           {/* --- STEP 1: UPLOAD --- */}
           {step === 1 && (

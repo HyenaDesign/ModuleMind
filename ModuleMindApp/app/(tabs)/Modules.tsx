@@ -3,7 +3,10 @@ import { StyleSheet, View, ImageBackground, SafeAreaView, Text, Image, Touchable
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, useFocusEffect, useLocalSearchParams } from 'expo-router'; 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import AppMessage from '../../components/AppMessage';
 import CustomTabBar from '../../components/CustomTabBar';
+import { FREE_MODULE_LIMIT, getStoredUser, isPremiumUser } from '../../constants/account';
+import { getStoredLanguage, LanguageKey, translate } from '../../constants/language';
 
 // Define the interface for Modules
 interface Module {
@@ -47,10 +50,19 @@ export default function ModulesScreen() {
   
   const [modules, setModules] = useState<Module[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isPremium, setIsPremium] = useState(false);
+  const [language, setLanguage] = useState<LanguageKey>('nl');
+  const [message, setMessage] = useState<string | null>(null);
+  const usagePercent = isPremium ? 0 : Math.min(100, Math.round((modules.length / FREE_MODULE_LIMIT) * 100));
+  const t = useCallback((key: Parameters<typeof translate>[1]) => translate(language, key), [language]);
 
   const fetchModules = useCallback(async () => {
     try {
       setLoading(true);
+      setMessage(null);
+      const user = await getStoredUser();
+      setIsPremium(isPremiumUser(user));
+      setLanguage(await getStoredLanguage());
       
       // 2. Fetch modules specifically for THIS subject
       const response = await fetch(`https://modulemindapi-production.up.railway.app/modules/${subjectId}`);
@@ -60,16 +72,33 @@ export default function ModulesScreen() {
         const hydratedModules = await Promise.all(data.map(getCachedModule));
         setModules(hydratedModules);
       } else {
-        console.error("Backend Error:", data.message);
+        setMessage(data.message || t('somethingWentWrong'));
         setModules([]);
       }
-    } catch (error) {
-      console.error("Fetch error:", error);
+    } catch {
+      setMessage(t('noInternet'));
       setModules([]);
     } finally {
       setLoading(false);
     }
-  }, [subjectId]);
+  }, [subjectId, t]);
+
+  const handleCreateModule = () => {
+    if (!isPremium && modules.length >= FREE_MODULE_LIMIT) {
+      router.push('/premium');
+      return;
+    }
+
+    router.push({
+      pathname: '/create_module',
+      params: {
+        subjectId,
+        subjectTitle,
+        moduleCount: modules.length,
+        isPremium: String(isPremium),
+      },
+    });
+  };
 
   useFocusEffect(
     useCallback(() => {
@@ -101,21 +130,29 @@ export default function ModulesScreen() {
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
           <View>
-            <Text style={styles.headerText}>{subjectTitle || 'Modules'}</Text>
+            <Text style={styles.headerText}>{subjectTitle || t('modules')}</Text>
           </View>
           
-          <TouchableOpacity
-            onPress={() => router.push({
-              pathname: '/create_module',
-              params: {
-                subjectId,
-                subjectTitle,
-              },
-            })}
-          >
+          <TouchableOpacity onPress={handleCreateModule}>
             <Text style={styles.headerIcon}>+</Text>
           </TouchableOpacity>
         </View>
+
+        {!isPremium && (
+          <View style={styles.storageContainer}>
+            <AppMessage tone="warning" compact message={`${usagePercent}% ${t('storageUsed')}`} />
+            <View style={styles.storageTrack}>
+              <View style={[styles.storageFill, { width: `${usagePercent}%` }]} />
+            </View>
+            <Text style={styles.storageMeta}>{modules.length}/{FREE_MODULE_LIMIT} {t('modules').toLowerCase()}</Text>
+          </View>
+        )}
+
+        {message && (
+          <View style={styles.messageWrap}>
+            <AppMessage tone="warning" title={t('internetWarning')} message={message} />
+          </View>
+        )}
 
         {loading ? (
           <View style={styles.contentContainer}>
@@ -124,8 +161,8 @@ export default function ModulesScreen() {
         ) : modules.length === 0 ? (
           <View style={styles.contentContainer}>
             <Image source={require('../../assets/images/tab_inactive.png')} style={styles.contentImage} />
-            <Text style={styles.contentTitle}>Nog geen modules</Text>
-            <Text style={styles.contentText}>Maak nu de eerste module voor dit vak aan</Text> 
+            <Text style={styles.contentTitle}>{t('noModules')}</Text>
+            <Text style={styles.contentText}>{t('createFirstModule')}</Text> 
           </View>
         ) : (
           <FlatList
@@ -157,7 +194,7 @@ export default function ModulesScreen() {
                 <View style={{ flex: 1 }}>
                   <Text style={styles.moduleTitleText}>{item.title}</Text>
                   <Text style={styles.moduleSubText} numberOfLines={1}>
-                    {item.description || "Geen beschrijving beschikbaar"}
+                    {item.description || t('noDescription')}
                   </Text>
                 </View>
               </TouchableOpacity>
@@ -187,6 +224,19 @@ const styles = StyleSheet.create({
   backText: { color: '#666', fontSize: 14, marginBottom: 5 },
   headerText: { fontSize: 28, fontWeight: 'bold', color: '#05C925' },
   headerIcon: { fontSize: 34, fontWeight: 'bold', color: '#05C925' },
+  storageContainer: { paddingHorizontal: 20, marginBottom: 8 },
+  messageWrap: { paddingHorizontal: 20, marginBottom: 8 },
+  storageTrack: {
+    marginTop: 10,
+    height: 10,
+    borderWidth: 1,
+    borderColor: '#B6B6B6',
+    borderRadius: 999,
+    overflow: 'hidden',
+    backgroundColor: '#FFF',
+  },
+  storageFill: { height: '100%', backgroundColor: '#38E765', borderRadius: 999 },
+  storageMeta: { marginTop: 4, color: '#777', fontSize: 12, fontWeight: '600' },
   contentContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   contentTitle: { fontSize: 20, color: '#05C925', fontWeight: '600' },
   contentText: { fontSize: 16, color: '#333', textAlign: 'center', paddingHorizontal: 40 },

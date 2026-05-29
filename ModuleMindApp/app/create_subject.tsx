@@ -8,35 +8,39 @@ import {
   SafeAreaView, 
   KeyboardAvoidingView, 
   Platform,
-  Alert,
   ActivityIndicator
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import AppMessage from '../components/AppMessage';
 import CustomTabBar from '../components/CustomTabBar';
+import { useLanguage } from '../hooks/use-language';
 
 export default function CreateSubjectScreen() {
   const router = useRouter();
+  const { t } = useLanguage();
   
   // State for inputs
   const [subjectTitle, setSubjectTitle] = useState('');
   const [subjectDescription, setSubjectDescription] = useState('');
   const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
 
   // Function to save to MAMP Backend
   const handleSave = async () => {
     if (!subjectTitle.trim()) {
-      Alert.alert("Fout", "Voer a.u.b. een titel in voor het vak.");
+      setMessage(t('moduleTitleRequired'));
       return;
     }
 
     setLoading(true);
+    setMessage(null);
 
     try {
       const userData = await AsyncStorage.getItem('user');
       if (!userData) {
-        Alert.alert("Fout", "Log opnieuw in voordat je een vak aanmaakt.");
+        setMessage(t('somethingWentWrong'));
         router.replace('/signin');
         return;
       }
@@ -44,7 +48,7 @@ export default function CreateSubjectScreen() {
       const user = JSON.parse(userData);
       const userId = user.id || user.user_id;
       if (!userId) {
-        Alert.alert("Fout", "Kan de huidige gebruiker niet vinden. Log opnieuw in.");
+        setMessage(t('somethingWentWrong'));
         router.replace('/signin');
         return;
       }
@@ -68,11 +72,10 @@ export default function CreateSubjectScreen() {
         // Success! Go back to the Home screen
         router.back(); 
       } else {
-        Alert.alert("Fout", data.message || "Kon vak niet opslaan.");
+        setMessage(data.message || t('somethingWentWrong'));
       }
-    } catch (error) {
-      console.error("Save error:", error);
-      Alert.alert("Netwerkfout", "Kan geen verbinding maken met de server.");
+    } catch {
+      setMessage(t('noInternet'));
     } finally {
       setLoading(false);
     }
@@ -90,7 +93,9 @@ export default function CreateSubjectScreen() {
       >
         <View style={styles.content}>
           {/* Header Title */}
-          <Text style={styles.mainTitle}>Vak aanmaken</Text>
+          <Text style={styles.mainTitle}>{t('createSubject')}</Text>
+
+          {message && <AppMessage tone="warning" title={t('internetWarning')} message={message} />}
 
           {/* Image Uploader Placeholder */}
           <View style={styles.imageUploaderContainer}>
@@ -104,7 +109,7 @@ export default function CreateSubjectScreen() {
           <View style={styles.inputGroup}>
             <TextInput
               style={styles.input}
-              placeholder="Titel invoeren..."
+              placeholder={t('enterTitle')}
               value={subjectTitle}
               onChangeText={setSubjectTitle}
               placeholderTextColor="#AAA"
@@ -115,7 +120,7 @@ export default function CreateSubjectScreen() {
           <View style={styles.inputGroup}>
             <TextInput
               style={styles.input}
-              placeholder="Beschrijving (optioneel)"
+              placeholder={t('descriptionOptional')}
               value={subjectDescription}
               onChangeText={setSubjectDescription}
               placeholderTextColor="#AAA"
@@ -129,7 +134,7 @@ export default function CreateSubjectScreen() {
               onPress={handleCancel}
               disabled={loading}
             >
-              <Text style={styles.cancelButtonText}>Annuleer</Text>
+              <Text style={styles.cancelButtonText}>{t('cancel')}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity 
@@ -140,7 +145,7 @@ export default function CreateSubjectScreen() {
               {loading ? (
                 <ActivityIndicator color="#FFF" />
               ) : (
-                <Text style={styles.saveButtonText}>Opslaan</Text>
+                <Text style={styles.saveButtonText}>{t('save')}</Text>
               )}
             </TouchableOpacity>
           </View>

@@ -4,6 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import CustomTabBar from '../components/CustomTabBar';
+import { useLanguage } from '../hooks/use-language';
 
 type QuizScore = {
   id: string;
@@ -34,6 +35,7 @@ type SubjectSummary = {
 
 export default function ScoresScreen() {
   const router = useRouter();
+  const { t, language } = useLanguage();
   const [loading, setLoading] = useState(true);
   const [scores, setScores] = useState<QuizScore[]>([]);
   const [expandedScoreId, setExpandedScoreId] = useState<string | null>(null);
@@ -74,7 +76,7 @@ export default function ScoresScreen() {
   const subjectSummaries = useMemo(() => {
     const summaries = new Map<string, SubjectSummary>();
     scores.forEach((score) => {
-      const key = score.subjectTitle || 'Onbekend vak';
+      const key = score.subjectTitle || t('subject');
       const existing = summaries.get(key) || {
         subjectTitle: key,
         attempts: 0,
@@ -89,12 +91,12 @@ export default function ScoresScreen() {
       summaries.set(key, existing);
     });
     return Array.from(summaries.values());
-  }, [scores]);
+  }, [scores, t]);
 
   const formatDate = (value: string) => {
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return '';
-    return date.toLocaleDateString('nl-BE', {
+    return date.toLocaleDateString(language === 'nl' ? 'nl-BE' : language, {
       day: '2-digit',
       month: 'short',
       year: 'numeric',
@@ -118,7 +120,7 @@ export default function ScoresScreen() {
           <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
             <Ionicons name="arrow-back" size={24} color="#05C925" />
           </TouchableOpacity>
-          <Text style={styles.title}>Scores</Text>
+          <Text style={styles.title}>{t('scores')}</Text>
         </View>
 
         <FlatList
@@ -128,34 +130,34 @@ export default function ScoresScreen() {
           ListHeaderComponent={(
             <View>
               <View style={styles.summaryCard}>
-                <Text style={styles.summaryLabel}>Totaalscore</Text>
+                <Text style={styles.summaryLabel}>{t('totalScore')}</Text>
                 <Text style={styles.summaryValue}>{totals.percentage}%</Text>
-                <Text style={styles.summaryMeta}>{totals.correct} van {totals.total} juist in {totals.attempts} pogingen</Text>
+                <Text style={styles.summaryMeta}>{totals.correct}/{totals.total} {t('correct')} - {totals.attempts} {t('attempts')}</Text>
               </View>
 
               {subjectSummaries.length > 0 && (
                 <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Per vak</Text>
+                  <Text style={styles.sectionTitle}>{t('perSubject')}</Text>
                   <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.subjectRow}>
                     {subjectSummaries.map((subject) => (
                       <View key={subject.subjectTitle} style={styles.subjectCard}>
                         <Text style={styles.subjectTitle} numberOfLines={1}>{subject.subjectTitle}</Text>
                         <Text style={styles.subjectPercentage}>{subject.percentage}%</Text>
-                        <Text style={styles.subjectMeta}>{subject.correct}/{subject.total} juist</Text>
+                        <Text style={styles.subjectMeta}>{subject.correct}/{subject.total} {t('correct')}</Text>
                       </View>
                     ))}
                   </ScrollView>
                 </View>
               )}
 
-              <Text style={styles.sectionTitle}>Per module</Text>
+              <Text style={styles.sectionTitle}>{t('perModule')}</Text>
             </View>
           )}
           ListEmptyComponent={(
             <View style={styles.emptyState}>
               <Ionicons name="bar-chart-outline" size={42} color="#05C925" />
-              <Text style={styles.emptyTitle}>Nog geen scores</Text>
-              <Text style={styles.emptyText}>Maak een quiz af om je scores hier te zien.</Text>
+              <Text style={styles.emptyTitle}>{t('noScores')}</Text>
+              <Text style={styles.emptyText}>{t('finishQuizForScores')}</Text>
             </View>
           )}
           renderItem={({ item }) => {
@@ -176,7 +178,7 @@ export default function ScoresScreen() {
                     <Text style={styles.scoreBadgeText}>{item.percentage}%</Text>
                   </View>
                 </View>
-                <Text style={styles.scoreLine}>{item.correct} van {item.total} juist</Text>
+                <Text style={styles.scoreLine}>{item.correct}/{item.total} {t('correct')}</Text>
 
                 {expanded && (
                   <View style={styles.answerList}>
@@ -189,8 +191,8 @@ export default function ScoresScreen() {
                         />
                         <View style={{ flex: 1 }}>
                           <Text style={styles.answerQuestion}>{answer.question}</Text>
-                          <Text style={styles.answerText}>Jouw antwoord: {answer.selectedAnswer}</Text>
-                          {!answer.isCorrect && <Text style={styles.answerText}>Juist antwoord: {answer.correctAnswer}</Text>}
+                          <Text style={styles.answerText}>{t('yourAnswer')}: {answer.selectedAnswer}</Text>
+                          {!answer.isCorrect && <Text style={styles.answerText}>{t('correctAnswer')}: {answer.correctAnswer}</Text>}
                         </View>
                       </View>
                     ))}

@@ -1,43 +1,51 @@
 import React, { useState, useCallback } from 'react';
-import { StyleSheet, View, SafeAreaView, Text, Image, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { StyleSheet, View, SafeAreaView, Text, Image, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, useFocusEffect } from 'expo-router'; 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import AppMessage from '../../components/AppMessage';
 import CustomTabBar from '../../components/CustomTabBar';
+import { getStoredUser, isPremiumUser, StoredUser } from '../../constants/account';
+import { getStoredLanguage, LanguageKey, translate } from '../../constants/language';
 
 const ProfileScreen = () => {
   const router = useRouter();
-  const [userData, setUserData] = useState<{ name: string; email: string } | null>(null);
+  const [userData, setUserData] = useState<StoredUser | null>(null);
+  const [language, setLanguage] = useState<LanguageKey>('nl');
   const [loading, setLoading] = useState(true);
+  const [message, setMessage] = useState<string | null>(null);
+  const premium = isPremiumUser(userData);
+  const t = useCallback((key: Parameters<typeof translate>[1]) => translate(language, key), [language]);
 
   const fetchUserData = useCallback(async () => {
     try {
         setLoading(true);
-        const user = await AsyncStorage.getItem('user');
-        if (!user) {
+        setMessage(null);
+        const storedLanguage = await getStoredLanguage();
+        setLanguage(storedLanguage);
+        const data = await getStoredUser();
+        if (!data) {
             console.log("No user found, redirecting to login...");
             router.replace('/signin');
             return;
         }
 
-        const data = JSON.parse(user);
         if (data?.name || data?.full_name || data?.email) {
             setUserData({
-                name: data.name || data.full_name || 'Naam niet beschikbaar',
-                email: data.email || 'Email niet beschikbaar',
+                ...data,
+                name: data.name || data.full_name || t('name'),
+                email: data.email || t('email'),
             });
         } else {
-            console.error("Stored user data is incomplete:", data);
-            Alert.alert("Fout", "Kan gebruikersgegevens niet ophalen.");
+            setMessage(t('somethingWentWrong'));
         }
-    } catch (error) {
-        console.error("Error fetching profile:", error);
-        Alert.alert("Netwerkfout", "Kan geen verbinding maken met de server.");
+    } catch {
+        setMessage(t('noInternet'));
     } finally {
         setLoading(false);
     }
-  }, [router]);
+  }, [router, t]);
 
   useFocusEffect(
     useCallback(() => {
@@ -67,27 +75,30 @@ const ProfileScreen = () => {
     >
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.header}>
-          <Text style={styles.headerText}>Profiel</Text>
+          <Text style={styles.headerText}>{t('profile')}</Text>
         </View>
 
         <View style={styles.content}>
+          {message && <AppMessage tone="warning" title={t('internetWarning')} message={message} />}
           <View style={styles.profileCard}>
             <Image source={require('../../assets/images/profile-placeholder.png')} style={styles.profileImage} />
-            <Text style={styles.name}>{userData?.name || 'Naam niet beschikbaar'}</Text>
-            <Text style={styles.email}>{userData?.email || 'Email niet beschikbaar'}</Text>
-            <View style={styles.badge}>
-              <Text style={styles.badgeIcon}>!</Text>
-              <Text style={styles.badgeText}>Gratis gebruiker</Text>
+            <Text style={styles.name}>{userData?.name || t('name')}</Text>
+            <Text style={styles.email}>{userData?.email || t('email')}</Text>
+            <View style={[styles.badge, premium && styles.premiumBadge]}>
+              <Text style={[styles.badgeIcon, premium && styles.premiumBadgeIcon]}>{premium ? '✓' : '!'}</Text>
+              <Text style={[styles.badgeText, premium && styles.premiumBadgeText]}>
+                {premium ? t('premiumUser') : t('freeUser')}
+              </Text>
             </View>
-            <TouchableOpacity style={styles.editButton} activeOpacity={0.8}>
-              <Text style={styles.editButtonText}>Bewerk profiel</Text>
+            <TouchableOpacity style={styles.editButton} activeOpacity={0.8} onPress={() => router.push('/account-settings')}>
+              <Text style={styles.editButtonText}>{t('editProfile')}</Text>
             </TouchableOpacity>
           </View>
 
           <View style={styles.menuGroup}>
-            <TouchableOpacity style={[styles.menuItem, styles.premiumItem]} activeOpacity={0.8}>
+            <TouchableOpacity style={[styles.menuItem, styles.premiumItem]} activeOpacity={0.8} onPress={() => router.push('/premium')}>
               <MaterialCommunityIcons name="diamond-stone" size={20} color="#444444" />
-              <Text style={styles.menuText}>Wordt premium student</Text>
+              <Text style={styles.menuText}>{premium ? t('manageSubscription') : t('becomePremium')}</Text>
               <Ionicons name="arrow-forward" size={20} color="#333333" />
             </TouchableOpacity>
 
@@ -97,28 +108,28 @@ const ProfileScreen = () => {
               onPress={() => router.push('/scores')}
             >
               <Ionicons name="bar-chart-outline" size={20} color="#555555" />
-              <Text style={styles.menuText}>Scores bekijken</Text>
+              <Text style={styles.menuText}>{t('scores')}</Text>
               <Ionicons name="arrow-forward" size={20} color="#333333" />
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.menuItem} activeOpacity={0.8}
             onPress={() => router.push('/(tabs)/language')}>
               <Ionicons name="language-outline" size={20} color="#555555" />
-              <Text style={styles.menuText}>Taal configureren</Text>
+              <Text style={styles.menuText}>{t('language')}</Text>
               <Ionicons name="arrow-forward" size={20} color="#333333" />
             </TouchableOpacity>
           </View>
 
           <View style={styles.menuGroup}>
-            <TouchableOpacity style={styles.menuItem} activeOpacity={0.8}>
+            <TouchableOpacity style={styles.menuItem} activeOpacity={0.8} onPress={() => router.push('/account-settings')}>
               <Ionicons name="shield-checkmark-outline" size={20} color="#555555" />
-              <Text style={styles.menuText}>Accountbeveiliging</Text>
+              <Text style={styles.menuText}>{t('accountSecurity')}</Text>
               <Ionicons name="arrow-forward" size={20} color="#333333" />
             </TouchableOpacity>
 
             <TouchableOpacity style={[styles.menuItem, styles.logoutItem]} activeOpacity={0.8} onPress={handleLogout}>
               <Ionicons name="log-out-outline" size={20} color="#444444" />
-              <Text style={styles.menuText}>Log uit</Text>
+              <Text style={styles.menuText}>{t('logout')}</Text>
               <Ionicons name="arrow-forward" size={20} color="#333333" />
             </TouchableOpacity>
           </View>
@@ -203,6 +214,15 @@ const styles = StyleSheet.create({
     color: '#FF9900',
     fontSize: 12,
     fontWeight: '600',
+  },
+  premiumBadge: {
+    backgroundColor: '#DFFBE7',
+  },
+  premiumBadgeIcon: {
+    color: '#05C925',
+  },
+  premiumBadgeText: {
+    color: '#05C925',
   },
   editButton: {
     marginTop: 12,

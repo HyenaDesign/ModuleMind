@@ -1,9 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import AppMessage from '../components/AppMessage';
 import CustomTabBar from '../components/CustomTabBar';
+import { useLanguage } from '../hooks/use-language';
 
 type QuizQuestion = {
   question: string;
@@ -90,6 +92,7 @@ const normalizeQuestions = (rawQuestions: unknown): QuizQuestion[] => {
 
 export default function QuizScreen() {
   const router = useRouter();
+  const { t } = useLanguage();
   const params = useLocalSearchParams();
   const moduleId = getParam(params.moduleId);
   const moduleTitle = getParam(params.moduleTitle) || 'Module';
@@ -102,6 +105,7 @@ export default function QuizScreen() {
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [answers, setAnswers] = useState<SavedAnswer[]>([]);
   const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
 
   const currentQuestion = questions[currentIndex];
   const isLastQuestion = currentIndex === questions.length - 1;
@@ -133,13 +137,12 @@ export default function QuizScreen() {
       }
 
       setQuestions([]);
-    } catch (error) {
-      console.error('Quiz load error:', error);
-      Alert.alert('Fout', 'Kon de quiz niet laden.');
+    } catch {
+      setMessage(t('loadQuizFailed'));
     } finally {
       setLoading(false);
     }
-  }, [moduleId, moduleTitle, subjectId]);
+  }, [moduleId, moduleTitle, subjectId, t]);
 
   useEffect(() => {
     loadQuestions();
@@ -176,9 +179,8 @@ export default function QuizScreen() {
       const scores = storedScores ? JSON.parse(storedScores) : [];
       await AsyncStorage.setItem(storageKey, JSON.stringify([score, ...scores]));
       router.replace('/scores');
-    } catch (error) {
-      console.error('Score save error:', error);
-      Alert.alert('Fout', 'Kon je score niet opslaan.');
+    } catch {
+      setMessage(t('saveScoreFailed'));
     } finally {
       setSaving(false);
     }
@@ -225,6 +227,7 @@ export default function QuizScreen() {
         <SafeAreaView style={styles.container}>
           <ScrollView contentContainerStyle={styles.scrollContent}>
             <Text style={styles.title}>{moduleTitle}</Text>
+            {message && <AppMessage tone="error" message={message} />}
             <View style={styles.questionCard}>
               <Text style={styles.emptyTitle}>Geen quizvragen gevonden</Text>
               <Text style={styles.emptyText}>
@@ -232,7 +235,7 @@ export default function QuizScreen() {
               </Text>
             </View>
             <TouchableOpacity style={styles.forwardButton} onPress={() => router.back()}>
-              <Text style={styles.forwardText}>Terug</Text>
+            <Text style={styles.forwardText}>{t('back')}</Text>
             </TouchableOpacity>
           </ScrollView>
         </SafeAreaView>
@@ -257,6 +260,8 @@ export default function QuizScreen() {
               <Text style={styles.subjectText}>{subjectTitle} · {progressText}</Text>
             </View>
           </View>
+
+          {message && <AppMessage tone="error" message={message} />}
 
           <View style={styles.questionCard}>
             <Text style={styles.questionText}>{currentQuestion.question}</Text>
@@ -299,23 +304,23 @@ export default function QuizScreen() {
 
           {selectedAnswer && (
             <View style={[styles.feedbackBox, selectedIsCorrect ? styles.feedbackCorrect : styles.feedbackWrong]}>
-              <Text style={styles.feedbackTitle}>{selectedIsCorrect ? 'Juist' : 'Niet juist'}</Text>
+              <Text style={styles.feedbackTitle}>{selectedIsCorrect ? t('correct') : t('wrongAnswer')}</Text>
               <Text style={styles.feedbackText}>
-                {selectedIsCorrect ? 'Goed gedaan.' : `Het juiste antwoord is: ${currentQuestion.correctAnswer}`}
+                {selectedIsCorrect ? t('goodJob') : `${t('correctAnswer')}: ${currentQuestion.correctAnswer}`}
               </Text>
             </View>
           )}
 
           <View style={styles.navRow}>
             <TouchableOpacity style={styles.backButtonOutline} onPress={() => router.back()}>
-              <Text style={styles.backButtonText}>Stoppen</Text>
+              <Text style={styles.backButtonText}>{t('cancel')}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.forwardButton, (!selectedAnswer || saving) && styles.disabledButton]}
               disabled={!selectedAnswer || saving}
               onPress={handleNext}
             >
-              {saving ? <ActivityIndicator color="#FFF" /> : <Text style={styles.forwardText}>{isLastQuestion ? 'Score opslaan' : 'Doorgaan'}</Text>}
+              {saving ? <ActivityIndicator color="#FFF" /> : <Text style={styles.forwardText}>{isLastQuestion ? t('save') : t('continue')}</Text>}
             </TouchableOpacity>
           </View>
         </ScrollView>

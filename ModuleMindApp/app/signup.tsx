@@ -13,9 +13,12 @@ import {
 } from 'react-native';
 import { Ionicons, FontAwesome, AntDesign } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import AppMessage from '../components/AppMessage';
+import { useLanguage } from '../hooks/use-language';
 
 export default function SignUpScreen() {
   const router = useRouter();
+  const { t } = useLanguage();
   const [agree, setAgree] = useState(false);
   
   // 1. ADD THESE STATES
@@ -23,19 +26,23 @@ export default function SignUpScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   // 2. ADD THIS FUNCTION
   const handleSignUp = async () => {
     if (!fullName || !email || !password) {
-      alert("Vul alle velden in.");
+      setMessage(t('requiredFields'));
       return;
     }
     if (!agree) {
-      alert("Je moet akkoord gaan met de voorwaarden.");
+      setMessage(t('acceptTerms'));
       return;
     }
 
     setLoading(true);
+    setMessage(null);
+    setSuccessMessage(null);
     try {
       const response = await fetch('https://modulemindapi-production.up.railway.app/register', {
         method: 'POST',
@@ -49,13 +56,13 @@ export default function SignUpScreen() {
 
       const data = await response.json();
       if (response.status === 201) {
-        alert("Account aangemaakt!");
+        setSuccessMessage(t('saved'));
         router.push('/signin');
       } else {
-        alert(data.message || "Registratie mislukt.");
+        setMessage(data.message || t('somethingWentWrong'));
       }
     } catch {
-      alert("Netwerkfout. Controleer je IP en server.");
+      setMessage(t('noInternet'));
     } finally {
       setLoading(false);
     }
@@ -75,7 +82,7 @@ export default function SignUpScreen() {
         <View style={styles.header}>
           <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
             <Ionicons name="chevron-back" size={24} color="#555" />
-            <Text style={styles.backText}>Terug</Text>
+            <Text style={styles.backText}>{t('back')}</Text>
           </TouchableOpacity>
         </View>
 
@@ -90,11 +97,14 @@ export default function SignUpScreen() {
               contentContainerStyle={styles.scrollContent}
               bounces={false}
             >
-              <Text style={styles.title}>Aan de slag</Text>
+              <Text style={styles.title}>{t('getStarted')}</Text>
+
+              {message && <AppMessage tone="warning" title={t('internetWarning')} message={message} />}
+              {successMessage && <AppMessage tone="success" message={successMessage} />}
 
               {/* Form Fields - Compact spacing */}
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Volledige naam</Text>
+                <Text style={styles.label}>{t('fullName')}</Text>
                 <TextInput 
                   style={styles.input} 
                   placeholder="John Doe" 
@@ -104,7 +114,7 @@ export default function SignUpScreen() {
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Email</Text>
+                <Text style={styles.label}>{t('email')}</Text>
                 <TextInput 
                   style={styles.input} 
                   placeholder="Example@email.com" 
@@ -116,7 +126,7 @@ export default function SignUpScreen() {
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Wachtwoord</Text>
+                <Text style={styles.label}>{t('password')}</Text>
                 <TextInput 
                   style={styles.input} 
                   placeholder="........" 
@@ -136,7 +146,7 @@ export default function SignUpScreen() {
                   {agree && <Ionicons name="checkmark" size={14} color="white" />}
                 </View>
                 <Text style={styles.checkboxLabel}>
-                  Ik ga akkoord met de <Text style={styles.linkText}>algemene voorwaarden</Text>
+                  {t('acceptTerms')}
                 </Text>
               </TouchableOpacity>
 
@@ -148,7 +158,7 @@ export default function SignUpScreen() {
                 activeOpacity={0.8}
                 >
                 <Text style={styles.signUpButtonText}>
-                    {loading ? "Bezig..." : "Sign up"}
+                    {loading ? "..." : t('signUp')}
                 </Text>
                 </TouchableOpacity>
 
@@ -170,7 +180,7 @@ export default function SignUpScreen() {
               {/* Switch to Login */}
               <TouchableOpacity style={styles.footer} onPress={() => router.push('/signin')}>
                 <Text style={styles.footerText}>
-                    Al een account? <Text style={styles.linkText}>Sign in</Text>
+                    {t('hasAccount')} <Text style={styles.linkText}>{t('signIn')}</Text>
                 </Text>
                 </TouchableOpacity>
             </ScrollView>

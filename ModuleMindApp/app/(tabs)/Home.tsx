@@ -4,6 +4,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, useFocusEffect } from 'expo-router'; 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import CustomTabBar from '../../components/CustomTabBar';
+import AppMessage from '../../components/AppMessage';
+import { useLanguage } from '../../hooks/use-language';
 
 // Define the interface outside the component
 interface Subject {
@@ -16,12 +18,15 @@ interface Subject {
 
 export default function WhiteHeaderPage() {
   const router = useRouter();
+  const { t } = useLanguage();
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [loading, setLoading] = useState(true);
+  const [message, setMessage] = useState<string | null>(null);
 
   const fetchSubjects = useCallback(async () => {
     try {
       setLoading(true);
+      setMessage(null);
       const userData = await AsyncStorage.getItem('user');
       
       if (!userData) {
@@ -44,16 +49,16 @@ export default function WhiteHeaderPage() {
       if (Array.isArray(data)) {
         setSubjects(data);
       } else {
-        console.error("Backend Error:", data.message);
+        setMessage(data.message || t('somethingWentWrong'));
         setSubjects([]);
       }
-    } catch (error) {
-      console.error("Fetch error:", error);
+    } catch {
+      setMessage(t('noInternet'));
       setSubjects([]);
     } finally {
       setLoading(false);
     }
-  }, [router]);
+  }, [router, t]);
 
   useFocusEffect(
     useCallback(() => {
@@ -79,11 +84,17 @@ export default function WhiteHeaderPage() {
       
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.headerText}>Vakken</Text>
+          <Text style={styles.headerText}>{t('subjects')}</Text>
           <TouchableOpacity onPress={() => router.push('/create_subject')}>
             <Text style={styles.headerIcon}>+</Text>
           </TouchableOpacity>
         </View>
+
+        {message && (
+          <View style={styles.messageWrap}>
+            <AppMessage tone="warning" title={t('internetWarning')} message={message} />
+          </View>
+        )}
 
         {loading ? (
           <View style={styles.contentContainer}>
@@ -92,8 +103,8 @@ export default function WhiteHeaderPage() {
         ) : subjects.length === 0 ? (
           <View style={styles.contentContainer}>
             <Image source={require('../../assets/images/tab_inactive.png')} style={styles.contentImage} />
-            <Text style={styles.contentTitle}>Nog geen vakken</Text>
-            <Text style={styles.contentText}>Maak nu uw eerste vak aan</Text> 
+            <Text style={styles.contentTitle}>{t('noSubjects')}</Text>
+            <Text style={styles.contentText}>{t('createFirstSubject')}</Text> 
           </View>
         ) : (
           <FlatList
@@ -117,7 +128,7 @@ export default function WhiteHeaderPage() {
       <View style={{ flex: 1 }}>
         <Text style={styles.subjectTitleText}>{item.title}</Text>
         <Text style={styles.subjectSubText} numberOfLines={1}>
-          {item.description || "Geen beschrijving"}
+          {item.description || t('noDescription')}
         </Text>
       </View>
     </TouchableOpacity>
@@ -166,6 +177,10 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  messageWrap: {
+    paddingHorizontal: 20,
+    marginBottom: 8,
   },
   contentTitle: {
     fontSize: 20,

@@ -10,33 +10,35 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons, FontAwesome, AntDesign } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import AppMessage from '../components/AppMessage';
+import { useLanguage } from '../hooks/use-language';
 
 
 export default function SignInScreen() {
   const router = useRouter();
+  const { t } = useLanguage();
 
   // --- 1. State for Inputs ---
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
 
   // --- 2. Login Logic ---
   const handleSignIn = async () => {
-    console.log("Attempting login...");
     if (!email || !password) {
-      console.log("Validation failed");
-      Alert.alert("Fout", "Vul alstublieft uw email en wachtwoord in.");
+      setMessage(t('requiredFields'));
       return;
     }
 
     setLoading(true);
+    setMessage(null);
 
     try {
       // REPLACE YOUR_IP with the same IP used in your SignUp
@@ -61,11 +63,10 @@ export default function SignInScreen() {
         }));
         router.replace('/(tabs)/Home'); 
       } else {
-        Alert.alert("Login mislukt", data.message || "Ongeldige inloggegevens.");
+        setMessage(data.message || t('invalidLogin'));
       }
-    } catch (error) {
-      console.error(error);
-      Alert.alert("Netwerkfout", "Kan geen verbinding maken met de server.");
+    } catch {
+      setMessage(t('noInternet'));
     } finally {
       setLoading(false);
     }
@@ -82,7 +83,7 @@ export default function SignInScreen() {
         <View style={styles.header}>
           <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
             <Ionicons name="chevron-back" size={24} color="#555" />
-            <Text style={styles.backText}>Terug</Text>
+            <Text style={styles.backText}>{t('back')}</Text>
           </TouchableOpacity>
         </View>
 
@@ -96,10 +97,12 @@ export default function SignInScreen() {
               contentContainerStyle={styles.scrollContent}
               keyboardShouldPersistTaps="handled"
             >
-              <Text style={styles.title}>Welkom terug</Text>
+              <Text style={styles.title}>{t('welcomeBack')}</Text>
+
+              {message && <AppMessage tone="warning" title={t('internetWarning')} message={message} />}
 
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Email</Text>
+                <Text style={styles.label}>{t('email')}</Text>
                 <TextInput 
                   style={styles.input} 
                   placeholder="Example@email.com" 
@@ -111,7 +114,7 @@ export default function SignInScreen() {
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Wachtwoord</Text>
+                <Text style={styles.label}>{t('password')}</Text>
                 <TextInput 
                   style={styles.input} 
                   placeholder="........" 
@@ -129,11 +132,11 @@ export default function SignInScreen() {
                   <View style={[styles.checkbox, rememberMe && styles.checkedBox]}>
                     {rememberMe && <Ionicons name="checkmark" size={14} color="white" />}
                   </View>
-                  <Text style={styles.checkboxLabel}>Onthoud mij</Text>
+                  <Text style={styles.checkboxLabel}>{t('rememberMe')}</Text>
                 </TouchableOpacity>
                 
                 <TouchableOpacity>
-                  <Text style={styles.linkText}>Wachtwoord vergeten?</Text>
+                  <Text style={styles.linkText}>{t('forgotPassword')}</Text>
                 </TouchableOpacity>
               </View>
 
@@ -142,7 +145,7 @@ export default function SignInScreen() {
                 onPress={handleSignIn}
                 disabled={loading}
               >
-                {loading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.signInButtonText}>Sign in</Text>}
+                {loading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.signInButtonText}>{t('signIn')}</Text>}
               </TouchableOpacity>
 
               <View style={styles.dividerContainer}>
@@ -160,7 +163,7 @@ export default function SignInScreen() {
 
               <TouchableOpacity style={styles.footer} onPress={() => router.push('/signup')}>
                 <Text style={styles.footerText}>
-                  Nog geen account? <Text style={styles.linkText}>Sign up</Text>
+                  {t('noAccount')} <Text style={styles.linkText}>{t('signUp')}</Text>
                 </Text>
               </TouchableOpacity>
             </ScrollView>
