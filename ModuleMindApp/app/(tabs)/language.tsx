@@ -50,6 +50,8 @@ const LanguageScreen = () => {
     setSelectedLanguage(language);
     await setStoredLanguage(language);
     await saveStoredUser({ language });
+    // Force a small delay or router refresh if needed,
+    // but the useFocusEffect in hooks should handle it when navigating back.
   };
 
   if (loading) {

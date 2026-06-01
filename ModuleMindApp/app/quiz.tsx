@@ -153,6 +153,12 @@ export default function QuizScreen() {
     return `${currentIndex + 1} / ${questions.length}`;
   }, [currentIndex, questions.length]);
 
+  const translateQuizContent = useCallback(async (content: QuizQuestion[]) => {
+    // If you want to translate the existing questions via AI, you'd call an API here.
+    // For now, we just return the content.
+    return content;
+  }, []);
+
   const saveScore = async (finalAnswers: SavedAnswer[]) => {
     setSaving(true);
     try {
@@ -229,9 +235,11 @@ export default function QuizScreen() {
             <Text style={styles.title}>{moduleTitle}</Text>
             {message && <AppMessage tone="error" message={message} />}
             <View style={styles.questionCard}>
-              <Text style={styles.emptyTitle}>Geen quizvragen gevonden</Text>
+              <Text style={styles.emptyTitle}>{language === 'nl' ? 'Geen quizvragen gevonden' : 'No quiz questions found'}</Text>
               <Text style={styles.emptyText}>
-                Deze module bevat geen quizvragen in de app-cache. Modules die voor deze update zijn gemaakt moeten opnieuw gegenereerd of opgeslagen worden.
+                {language === 'nl'
+                  ? 'Deze module bevat geen quizvragen in de app-cache. Modules die voor deze update zijn gemaakt moeten opnieuw gegenereerd of opgeslagen worden.'
+                  : 'This module contains no quiz questions in the app cache. Modules created before this update must be regenerated or saved again.'}
               </Text>
             </View>
             <TouchableOpacity style={styles.forwardButton} onPress={() => router.back()}>

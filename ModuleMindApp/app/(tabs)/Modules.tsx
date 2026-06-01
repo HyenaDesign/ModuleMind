@@ -6,7 +6,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import AppMessage from '../../components/AppMessage';
 import CustomTabBar from '../../components/CustomTabBar';
 import { FREE_MODULE_LIMIT, getStoredUser, isPremiumUser } from '../../constants/account';
-import { getStoredLanguage, LanguageKey, translate } from '../../constants/language';
+import { useLanguage } from '../../hooks/use-language';
+import { translate } from '../../constants/language';
 
 // Define the interface for Modules
 interface Module {
@@ -44,6 +45,7 @@ const getCachedModule = async (module: Module) => {
 
 export default function ModulesScreen() {
   const router = useRouter();
+  const { t, language } = useLanguage();
   // 1. Get the subject info passed from the Home screen
   const { subjectId, subjectTitle } = useLocalSearchParams();
   const selectedSubjectTitle = getParam(subjectTitle);
@@ -51,10 +53,8 @@ export default function ModulesScreen() {
   const [modules, setModules] = useState<Module[]>([]);
   const [loading, setLoading] = useState(true);
   const [isPremium, setIsPremium] = useState(false);
-  const [language, setLanguage] = useState<LanguageKey>('nl');
   const [message, setMessage] = useState<string | null>(null);
   const usagePercent = isPremium ? 0 : Math.min(100, Math.round((modules.length / FREE_MODULE_LIMIT) * 100));
-  const t = useCallback((key: Parameters<typeof translate>[1]) => translate(language, key), [language]);
 
   const fetchModules = useCallback(async () => {
     try {
@@ -62,8 +62,7 @@ export default function ModulesScreen() {
       setMessage(null);
       const user = await getStoredUser();
       setIsPremium(isPremiumUser(user));
-      setLanguage(await getStoredLanguage());
-      
+
       // 2. Fetch modules specifically for THIS subject
       const response = await fetch(`https://modulemindapi-production.up.railway.app/modules/${subjectId}`);
       const data = await response.json();

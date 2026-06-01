@@ -8,9 +8,10 @@ import * as DocumentPicker from 'expo-document-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import AppMessage from '../components/AppMessage';
+import { useLanguage } from '../hooks/use-language';
 import CustomTabBar from '../components/CustomTabBar';
 import { FREE_MODULE_LIMIT, getStoredUser, isPremiumUser } from '../constants/account';
-import { getStoredLanguage, LanguageKey, translate } from '../constants/language';
+import { translate } from '../constants/language';
 
 type QuizQuestion = {
   question: string;
@@ -65,6 +66,7 @@ const normalizeQuestions = (rawQuestions: unknown): QuizQuestion[] => {
 
 export default function CreateModuleScreen() {
   const router = useRouter();
+  const { t, language } = useLanguage();
   const { subjectId, subjectTitle, moduleCount, isPremium: premiumParam } = useLocalSearchParams();
   const selectedSubjectId = Array.isArray(subjectId) ? subjectId[0] : subjectId;
   const selectedSubjectTitle = Array.isArray(subjectTitle) ? subjectTitle[0] : subjectTitle;
@@ -85,13 +87,7 @@ export default function CreateModuleScreen() {
   // Step 3 Metadata State (afbeelding_7.png)
   const [moduleTitle, setModuleTitle] = useState('');
   const [moduleDesc, setModuleDesc] = useState('');
-  const [language, setLanguage] = useState<LanguageKey>('nl');
   const [message, setMessage] = useState<{ text: string; tone: 'error' | 'warning' | 'success' } | null>(null);
-  const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
-
-  useEffect(() => {
-    getStoredLanguage().then(setLanguage);
-  }, []);
 
   const ensureStorageAvailable = async () => {
     const user = await getStoredUser();
@@ -127,22 +123,58 @@ export default function CreateModuleScreen() {
     if (!file || !file.assets) return;
     if (!(await ensureStorageAvailable())) return;
     setIsProcessing(true);
-    
+    setMessage(null);
+
     try {
       const selectedFile = file.assets[0];
       const formData = new FormData();
-      const responseFile = await fetch(selectedFile.uri);
-      const blob = await responseFile.blob();
 
-      formData.append('file', blob, selectedFile.name);
+      let type = selectedFile.mimeType;
+      if (!type || type === 'application/octet-stream') {
+        if (selectedFile.name.toLowerCase().endsWith('.pdf')) type = 'application/pdf';
+        else if (selectedFile.name.toLowerCase().endsWith('.docx')) type = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+        else if (selectedFile.name.toLowerCase().endsWith('.txt')) type = 'text/plain';
+      }
+
+      // @ts-ignore
+      formData.append('file', {
+        uri: selectedFile.uri,
+        name: selectedFile.name || 'document',
+        type: type || 'application/octet-stream',
+      });
       formData.append('model', selectedModel);
+
+      console.log('Attempting AI generation...', {
+        uri: selectedFile.uri,
+        name: selectedFile.name,
+        type: type
+      });
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 180000); // 3 minute timeout
 
       const response = await fetch('https://modulemindapi-production.up.railway.app/generate-quiz', {
         method: 'POST',
         body: formData,
+        signal: controller.signal,
+        headers: {
+          'Accept': 'application/json',
+        },
       });
 
-      const data = await response.json();
+      clearTimeout(timeoutId);
+
+      console.log('Response Status:', response.status);
+      const responseText = await response.text();
+
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (e) {
+        console.error('Non-JSON response received:', responseText.substring(0, 200));
+        setMessage({ text: t('generationFailed'), tone: 'error' });
+        return;
+      }
 
       if (response.ok && data.questions) {
         const normalizedQuestions = normalizeQuestions(data.questions);
@@ -155,10 +187,16 @@ export default function CreateModuleScreen() {
         setQuestions(normalizedQuestions);
         setStep(2);
       } else {
+        console.log('API Error Data:', data);
         setMessage({ text: data.message || t('generationFailed'), tone: 'error' });
       }
-    } catch {
-      setMessage({ text: t('noInternet'), tone: 'warning' });
+    } catch (error: any) {
+      console.error('AI Generation Error:', error);
+      if (error.name === 'AbortError') {
+        setMessage({ text: language === 'nl' ? 'De aanvraag duurde te lang. Probeer een kleiner bestand.' : 'Request timed out. Try a smaller file.', tone: 'error' });
+      } else {
+        setMessage({ text: t('noInternet'), tone: 'warning' });
+      }
     } finally {
       setIsProcessing(false);
     }
@@ -262,22 +300,22 @@ export default function CreateModuleScreen() {
           {/* --- STEP 1: UPLOAD --- */}
           {step === 1 && (
             <>
-              <Text style={styles.title}>{selectedSubjectTitle ? `Module maken voor ${selectedSubjectTitle}` : "Module maken"}</Text>
+              <Text style={styles.title}>{selectedSubjectTitle ? `${language === 'nl' ? 'Module maken voor' : 'Create module for'} ${selectedSubjectTitle}` : t('createFirstModule')}</Text>
               <View style={styles.section}>
-                <Text style={styles.sectionLabel}>1. Upload bestanden</Text>
+                <Text style={styles.sectionLabel}>1. {language === 'nl' ? 'Upload bestanden' : 'Upload files'}</Text>
                 <TouchableOpacity 
                   style={[styles.uploadBox, file ? styles.uploadBoxActive : null]} 
                   onPress={pickDocument}
                 >
                   <Text style={[styles.uploadTitle, file ? {color: '#05C925'} : null]}>
-                    {file ? "Bestand geladen!" : "Klik om te uploaden"}
+                    {file ? (language === 'nl' ? 'Bestand geladen!' : 'File loaded!') : (language === 'nl' ? 'Klik om te uploaden' : 'Click to upload')}
                   </Text>
                   <Text style={styles.uploadSubtitle}>{file?.assets?.[0]?.name ?? "PDF, DOCX of TXT"}</Text>
                 </TouchableOpacity>
               </View>
 
               <View style={styles.section}>
-                <Text style={styles.sectionLabel}>2. Kies AI Model</Text>
+                <Text style={styles.sectionLabel}>2. {language === 'nl' ? 'Kies AI Model' : 'Choose AI Model'}</Text>
                 {['gpt-4o', 'gpt-3.5'].map((m) => (
                   <TouchableOpacity 
                     key={m}
@@ -285,13 +323,13 @@ export default function CreateModuleScreen() {
                     onPress={() => setSelectedModel(m)}
                   >
                     <Text style={styles.modelName}>{m === 'gpt-4o' ? 'OpenAI GPT-4o' : 'GPT-3.5 Turbo'}</Text>
-                    <Text style={styles.modelDesc}>{m === 'gpt-4o' ? 'Meest accuraat' : 'Sneller'}</Text>
+                    <Text style={styles.modelDesc}>{m === 'gpt-4o' ? (language === 'nl' ? 'Meest accuraat' : 'Most accurate') : (language === 'nl' ? 'Sneller' : 'Faster')}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
 
               <TouchableOpacity style={styles.primaryButton} onPress={handleGenerateAI} disabled={isProcessing}>
-                {isProcessing ? <ActivityIndicator color="#FFF" /> : <Text style={styles.buttonText}>Genereer Vragen</Text>}
+                {isProcessing ? <ActivityIndicator color="#FFF" /> : <Text style={styles.buttonText}>{t('generateQuestions')}</Text>}
               </TouchableOpacity>
             </>
           )}
@@ -353,7 +391,7 @@ export default function CreateModuleScreen() {
                   style={styles.forwardButton}
                   onPress={() => currentIndex < questions.length - 1 ? setCurrentIndex(currentIndex + 1) : setStep(3)}
                 >
-                  <Text style={styles.forwardText}>{currentIndex === questions.length - 1 ? "Afronden" : "Doorgaan"}</Text>
+                  <Text style={styles.forwardText}>{currentIndex === questions.length - 1 ? (language === 'nl' ? 'Afronden' : 'Finish') : (language === 'nl' ? 'Doorgaan' : 'Continue')}</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -362,7 +400,7 @@ export default function CreateModuleScreen() {
           {/* --- STEP 3: FINALIZE (afbeelding_7.png) --- */}
           {step === 3 && (
             <View style={{ marginTop: 20 }}>
-              <Text style={styles.title}>{selectedSubjectTitle ? `Module maken voor ${selectedSubjectTitle}` : "Module maken"}</Text>
+              <Text style={styles.title}>{selectedSubjectTitle ? `${language === 'nl' ? 'Module maken voor' : 'Create module for'} ${selectedSubjectTitle}` : t('createFirstModule')}</Text>
 
               <View style={styles.imageUploadPlaceholder}>
                 <Ionicons name="image-outline" size={50} color="#CCC" />
@@ -373,14 +411,14 @@ export default function CreateModuleScreen() {
 
               <TextInput
                 style={styles.inputField}
-                placeholder="Titel invoeren..."
+                placeholder={t('enterTitle')}
                 value={moduleTitle}
                 onChangeText={setModuleTitle}
               />
 
               <TextInput
                 style={[styles.inputField, { height: 100, textAlignVertical: 'top' }]}
-                placeholder="Beschrijving (optioneel)"
+                placeholder={t('descriptionOptional')}
                 multiline
                 value={moduleDesc}
                 onChangeText={setModuleDesc}
@@ -388,11 +426,11 @@ export default function CreateModuleScreen() {
 
               <View style={styles.navRow}>
                 <TouchableOpacity style={styles.backButtonOutline} onPress={() => setStep(2)}>
-                  <Text style={{ color: '#05C925', fontWeight: '700' }}>Verder bewerken</Text>
+                  <Text style={{ color: '#05C925', fontWeight: '700' }}>{language === 'nl' ? 'Verder bewerken' : 'Edit more'}</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity style={styles.forwardButton} onPress={handleSaveModule} disabled={saving}>
-                  {saving ? <ActivityIndicator color="#FFF" /> : <Text style={styles.forwardText}>Doorgaan</Text>}
+                  {saving ? <ActivityIndicator color="#FFF" /> : <Text style={styles.forwardText}>{t('continue')}</Text>}
                 </TouchableOpacity>
               </View>
             </View>

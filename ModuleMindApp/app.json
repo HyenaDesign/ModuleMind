@@ -2,7 +2,7 @@
   "expo": {
     "name": "ModuleMindApp",
     "slug": "ModuleMindApp",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "modulemindapp",
@@ -19,7 +19,9 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.anonymous.ModuleMindApp",
+      "versionCode": 2
     },
     "web": {
       "output": "static",

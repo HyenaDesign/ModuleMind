@@ -6,11 +6,11 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import CustomTabBar from '../components/CustomTabBar';
 import AppMessage from '../components/AppMessage';
 import { getStoredUser, saveStoredUser } from '../constants/account';
-import { getStoredLanguage, LanguageKey, translate } from '../constants/language';
+import { useLanguage } from '../hooks/use-language';
 
 export default function AccountSettingsScreen() {
   const router = useRouter();
-  const [language, setLanguage] = useState<LanguageKey>('nl');
+  const { t, language } = useLanguage();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [name, setName] = useState('');
@@ -18,12 +18,10 @@ export default function AccountSettingsScreen() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [message, setMessage] = useState<{ text: string; tone: 'error' | 'warning' | 'success' } | null>(null);
-  const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
 
   const loadAccount = useCallback(async () => {
     try {
       setLoading(true);
-      setLanguage(await getStoredLanguage());
       const user = await getStoredUser();
 
       if (!user) {

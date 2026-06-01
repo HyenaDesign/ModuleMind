@@ -21,7 +21,7 @@ import { useLanguage } from '../hooks/use-language';
 
 export default function SignInScreen() {
   const router = useRouter();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
 
   // --- 1. State for Inputs ---
   const [email, setEmail] = useState('');
@@ -150,7 +150,7 @@ export default function SignInScreen() {
 
               <View style={styles.dividerContainer}>
                 <View style={styles.line} />
-                <Text style={styles.dividerText}>OF</Text>
+                <Text style={styles.dividerText}>{language === 'nl' ? 'OF' : 'OR'}</Text>
                 <View style={styles.line} />
               </View>
 

@@ -18,7 +18,7 @@ import { useLanguage } from '../hooks/use-language';
 
 export default function SignUpScreen() {
   const router = useRouter();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [agree, setAgree] = useState(false);
   
   // 1. ADD THESE STATES
@@ -165,7 +165,7 @@ export default function SignUpScreen() {
               {/* Divider */}
               <View style={styles.dividerContainer}>
                 <View style={styles.line} />
-                <Text style={styles.dividerText}>OF</Text>
+                <Text style={styles.dividerText}>{language === 'nl' ? 'OF' : 'OR'}</Text>
                 <View style={styles.line} />
               </View>
 

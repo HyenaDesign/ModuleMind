@@ -7,23 +7,21 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import AppMessage from '../../components/AppMessage';
 import CustomTabBar from '../../components/CustomTabBar';
 import { getStoredUser, isPremiumUser, StoredUser } from '../../constants/account';
-import { getStoredLanguage, LanguageKey, translate } from '../../constants/language';
+import { useLanguage } from '../../hooks/use-language';
+import { translate } from '../../constants/language';
 
 const ProfileScreen = () => {
   const router = useRouter();
+  const { t, language } = useLanguage();
   const [userData, setUserData] = useState<StoredUser | null>(null);
-  const [language, setLanguage] = useState<LanguageKey>('nl');
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState<string | null>(null);
   const premium = isPremiumUser(userData);
-  const t = useCallback((key: Parameters<typeof translate>[1]) => translate(language, key), [language]);
 
   const fetchUserData = useCallback(async () => {
     try {
         setLoading(true);
         setMessage(null);
-        const storedLanguage = await getStoredLanguage();
-        setLanguage(storedLanguage);
         const data = await getStoredUser();
         if (!data) {
             console.log("No user found, redirecting to login...");
