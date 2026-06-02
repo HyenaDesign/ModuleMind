@@ -8,11 +8,10 @@ import AppMessage from '../../components/AppMessage';
 import CustomTabBar from '../../components/CustomTabBar';
 import { getStoredUser, isPremiumUser, StoredUser } from '../../constants/account';
 import { useLanguage } from '../../hooks/use-language';
-import { translate } from '../../constants/language';
 
 const ProfileScreen = () => {
   const router = useRouter();
-  const { t, language } = useLanguage();
+  const { t } = useLanguage();
   const [userData, setUserData] = useState<StoredUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState<string | null>(null);

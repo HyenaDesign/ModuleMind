@@ -5,6 +5,7 @@ import {
   Text, 
   TextInput, 
   TouchableOpacity, 
+  Image,
   SafeAreaView, 
   KeyboardAvoidingView, 
   Platform,
@@ -12,6 +13,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import * as DocumentPicker from 'expo-document-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import AppMessage from '../components/AppMessage';
 import CustomTabBar from '../components/CustomTabBar';
@@ -24,8 +26,24 @@ export default function CreateSubjectScreen() {
   // State for inputs
   const [subjectTitle, setSubjectTitle] = useState('');
   const [subjectDescription, setSubjectDescription] = useState('');
+  const [coverImage, setCoverImage] = useState<DocumentPicker.DocumentPickerAsset | null>(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+
+  const pickCoverImage = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: 'image/*',
+        copyToCacheDirectory: true,
+      });
+
+      if (!result.canceled && result.assets?.[0]) {
+        setCoverImage(result.assets[0]);
+      }
+    } catch {
+      setMessage(t('fileLoadFailed'));
+    }
+  };
 
   // Function to save to MAMP Backend
   const handleSave = async () => {
@@ -69,6 +87,10 @@ export default function CreateSubjectScreen() {
       const data = await response.json();
 
       if (response.ok) {
+        const subjectId = data.id || data.subject_id || data.subjectId || data.subject?.id;
+        if (coverImage?.uri && subjectId) {
+          await AsyncStorage.setItem(`subjectCover:${subjectId}`, coverImage.uri);
+        }
         // Success! Go back to the Home screen
         router.back(); 
       } else {
@@ -99,10 +121,15 @@ export default function CreateSubjectScreen() {
 
           {/* Image Uploader Placeholder */}
           <View style={styles.imageUploaderContainer}>
-            <TouchableOpacity style={styles.imageBox} activeOpacity={0.8}>
-              <Ionicons name="image-outline" size={60} color="#AAA" />
+            <TouchableOpacity style={styles.imageBox} activeOpacity={0.8} onPress={pickCoverImage}>
+              {coverImage?.uri ? (
+                <Image source={{ uri: coverImage.uri }} style={styles.coverImage} />
+              ) : (
+                <Ionicons name="image-outline" size={60} color="#AAA" />
+              )}
               <Ionicons name="add" size={24} color="#555" style={styles.uploadPlus} />
             </TouchableOpacity>
+            <Text style={styles.coverLabel}>{coverImage ? t('coverLoaded') : t('uploadCover')}</Text>
           </View>
 
           {/* Input: Title */}
@@ -188,6 +215,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
+    overflow: 'hidden',
+  },
+  coverImage: {
+    width: '100%',
+    height: '100%',
+  },
+  coverLabel: {
+    marginTop: 10,
+    color: '#777',
+    fontWeight: '700',
   },
   uploadPlus: {
     position: 'absolute',

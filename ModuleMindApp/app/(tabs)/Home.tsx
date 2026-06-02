@@ -3,6 +3,7 @@ import { StyleSheet, View, ImageBackground, SafeAreaView, Text, Image, Touchable
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, useFocusEffect } from 'expo-router'; 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Ionicons } from '@expo/vector-icons';
 import CustomTabBar from '../../components/CustomTabBar';
 import AppMessage from '../../components/AppMessage';
 import { useLanguage } from '../../hooks/use-language';
@@ -14,6 +15,8 @@ interface Subject {
   description: string | null;
   user_id: number;
   created_at?: string;
+  cover_image?: string | null;
+  icon?: string | null;
 }
 
 export default function WhiteHeaderPage() {
@@ -47,7 +50,11 @@ export default function WhiteHeaderPage() {
       const data = await response.json();
       
       if (Array.isArray(data)) {
-        setSubjects(data);
+        const subjectsWithLocalCovers = await Promise.all(data.map(async (subject: Subject) => ({
+          ...subject,
+          cover_image: subject.cover_image || subject.icon || await AsyncStorage.getItem(`subjectCover:${subject.id}`),
+        })));
+        setSubjects(subjectsWithLocalCovers);
       } else {
         setMessage(data.message || t('somethingWentWrong'));
         setSubjects([]);
@@ -123,7 +130,11 @@ export default function WhiteHeaderPage() {
       })}
     >
       <View style={styles.subjectIconPlaceholder}>
-        <Text style={styles.subjectEmoji}>📚</Text>
+        {item.cover_image || item.icon ? (
+          <Image source={{ uri: item.cover_image || item.icon || '' }} style={styles.subjectCover} />
+        ) : (
+          <Ionicons name="school-outline" size={24} color="#05C925" />
+        )}
       </View>
       <View style={{ flex: 1 }}>
         <Text style={styles.subjectTitleText}>{item.title}</Text>
@@ -222,9 +233,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 15,
+    overflow: 'hidden',
   },
-  subjectEmoji: {
-    fontSize: 24,
+  subjectCover: {
+    width: '100%',
+    height: '100%',
   },
   subjectTitleText: {
     fontSize: 18,

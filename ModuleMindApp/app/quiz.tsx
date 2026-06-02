@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -11,6 +11,9 @@ type QuizQuestion = {
   question: string;
   options: string[];
   correctAnswer: string;
+  correctAnswers: string[];
+  type: 'single' | 'multiple' | 'open';
+  explanation: string;
 };
 
 type SavedAnswer = {
@@ -80,14 +83,25 @@ const normalizeQuestions = (rawQuestions: unknown): QuizQuestion[] => {
       const options = normalizeOptions(record.options).length > 0
         ? normalizeOptions(record.options)
         : [record.option_a, record.option_b, record.option_c, record.option_d].map(asString).filter(Boolean);
+      const correctAnswers = normalizeOptions(record.correctAnswers || record.correct_answers || record.answers);
+      const correctAnswer = asString(record.correctAnswer || record.correct_answer || record.answer || correctAnswers[0]);
+      const questionType = asString(record.type || record.questionType || record.question_type).toLowerCase();
+      const type: QuizQuestion['type'] = questionType.includes('open')
+        ? 'open'
+        : questionType.includes('multi') || correctAnswers.length > 1
+          ? 'multiple'
+          : 'single';
 
       return {
         question: asString(record.question || record.title || record.prompt),
         options,
-        correctAnswer: asString(record.correctAnswer || record.correct_answer || record.answer),
+        correctAnswer,
+        correctAnswers: correctAnswers.length > 0 ? correctAnswers : [correctAnswer].filter(Boolean),
+        type,
+        explanation: asString(record.explanation || record.feedback || record.reason),
       };
     })
-    .filter((question) => question.question && question.options.length > 0 && question.correctAnswer);
+    .filter((question) => question.question && (question.type === 'open' || question.options.length > 0) && question.correctAnswers.length > 0);
 };
 
 export default function QuizScreen() {
@@ -103,6 +117,8 @@ export default function QuizScreen() {
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
+  const [selectedAnswers, setSelectedAnswers] = useState<string[]>([]);
+  const [openAnswer, setOpenAnswer] = useState('');
   const [answers, setAnswers] = useState<SavedAnswer[]>([]);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -153,12 +169,6 @@ export default function QuizScreen() {
     return `${currentIndex + 1} / ${questions.length}`;
   }, [currentIndex, questions.length]);
 
-  const translateQuizContent = useCallback(async (content: QuizQuestion[]) => {
-    // If you want to translate the existing questions via AI, you'd call an API here.
-    // For now, we just return the content.
-    return content;
-  }, []);
-
   const saveScore = async (finalAnswers: SavedAnswer[]) => {
     setSaving(true);
     try {
@@ -193,18 +203,63 @@ export default function QuizScreen() {
   };
 
   const handleAnswer = (answer: string) => {
-    if (selectedAnswer) return;
+    if (!currentQuestion || selectedAnswer) return;
+    if (currentQuestion.type === 'multiple') {
+      setSelectedAnswers((current) => (
+        current.includes(answer)
+          ? current.filter((item) => item !== answer)
+          : [...current, answer]
+      ));
+      return;
+    }
     setSelectedAnswer(answer);
   };
 
+  const normalizeAnswer = (value: string) => value.trim().toLowerCase();
+
+  const isAnswerCorrect = (answerValue: string, selectedValues: string[]) => {
+    if (!currentQuestion) return false;
+
+    if (currentQuestion.type === 'multiple') {
+      const selected = selectedValues.map(normalizeAnswer).sort();
+      const correct = currentQuestion.correctAnswers.map(normalizeAnswer).sort();
+      return selected.length === correct.length && selected.every((answer, index) => answer === correct[index]);
+    }
+
+    return currentQuestion.correctAnswers.some((answer) => normalizeAnswer(answer) === normalizeAnswer(answerValue));
+  };
+
+  const feedbackText = () => {
+    if (!currentQuestion) return '';
+    if (currentQuestion.explanation) return currentQuestion.explanation;
+
+    if (isCurrentCorrect) {
+      return t('whyCorrect');
+    }
+
+    if (currentQuestion.type === 'multiple') {
+      return `${t('whyWrong')} ${t('correctAnswer')}: ${currentQuestion.correctAnswers.join(', ')}`;
+    }
+
+    return `${t('whyWrong')} ${t('correctAnswer')}: ${currentQuestion.correctAnswer}`;
+  };
+
   const handleNext = () => {
-    if (!currentQuestion || !selectedAnswer) return;
+    if (!currentQuestion) return;
+
+    const answerValue = currentQuestion.type === 'open'
+      ? openAnswer.trim()
+      : currentQuestion.type === 'multiple'
+        ? selectedAnswers.join(', ')
+        : selectedAnswer || '';
+
+    if (!answerValue) return;
 
     const answerRecord = {
       question: currentQuestion.question,
-      selectedAnswer,
-      correctAnswer: currentQuestion.correctAnswer,
-      isCorrect: selectedAnswer.trim().toLowerCase() === currentQuestion.correctAnswer.trim().toLowerCase(),
+      selectedAnswer: answerValue,
+      correctAnswer: currentQuestion.correctAnswers.join(', '),
+      isCorrect: isAnswerCorrect(answerValue, selectedAnswers),
     };
     const nextAnswers = [...answers, answerRecord];
 
@@ -217,6 +272,8 @@ export default function QuizScreen() {
     setAnswers(nextAnswers);
     setCurrentIndex((index) => index + 1);
     setSelectedAnswer(null);
+    setSelectedAnswers([]);
+    setOpenAnswer('');
   };
 
   if (loading) {
@@ -235,12 +292,8 @@ export default function QuizScreen() {
             <Text style={styles.title}>{moduleTitle}</Text>
             {message && <AppMessage tone="error" message={message} />}
             <View style={styles.questionCard}>
-              <Text style={styles.emptyTitle}>{language === 'nl' ? 'Geen quizvragen gevonden' : 'No quiz questions found'}</Text>
-              <Text style={styles.emptyText}>
-                {language === 'nl'
-                  ? 'Deze module bevat geen quizvragen in de app-cache. Modules die voor deze update zijn gemaakt moeten opnieuw gegenereerd of opgeslagen worden.'
-                  : 'This module contains no quiz questions in the app cache. Modules created before this update must be regenerated or saved again.'}
-              </Text>
+              <Text style={styles.emptyTitle}>Geen quizvragen gevonden</Text>
+              <Text style={styles.emptyText}>Deze module bevat geen quizvragen in de app-cache. Modules die voor deze update zijn gemaakt moeten opnieuw gegenereerd of opgeslagen worden.</Text>
             </View>
             <TouchableOpacity style={styles.forwardButton} onPress={() => router.back()}>
             <Text style={styles.forwardText}>{t('back')}</Text>
@@ -251,9 +304,16 @@ export default function QuizScreen() {
     );
   }
 
-  const selectedIsCorrect = selectedAnswer
-    ? selectedAnswer.trim().toLowerCase() === currentQuestion.correctAnswer.trim().toLowerCase()
-    : false;
+  const hasAnswered = currentQuestion.type === 'open'
+    ? openAnswer.trim().length > 0 && Boolean(selectedAnswer)
+    : currentQuestion.type === 'multiple'
+      ? selectedAnswers.length > 0 && Boolean(selectedAnswer)
+      : Boolean(selectedAnswer);
+  const isCurrentCorrect = currentQuestion.type === 'open'
+    ? isAnswerCorrect(openAnswer, [])
+    : currentQuestion.type === 'multiple'
+      ? isAnswerCorrect(selectedAnswers.join(', '), selectedAnswers)
+      : selectedAnswer ? isAnswerCorrect(selectedAnswer, []) : false;
 
   return (
     <View style={styles.screen}>
@@ -278,11 +338,32 @@ export default function QuizScreen() {
           <View style={styles.divider} />
 
           <View style={styles.optionsList}>
-            {currentQuestion.options.map((option) => {
+            {currentQuestion.type === 'open' ? (
+              <View>
+                <TextInput
+                  style={styles.openInput}
+                  value={openAnswer}
+                  onChangeText={setOpenAnswer}
+                  placeholder={t('typeAnswer')}
+                  multiline
+                  editable={!selectedAnswer}
+                />
+                {!selectedAnswer && (
+                  <TouchableOpacity
+                    style={[styles.forwardButton, !openAnswer.trim() && styles.disabledButton]}
+                    disabled={!openAnswer.trim()}
+                    onPress={() => setSelectedAnswer(openAnswer.trim())}
+                  >
+                    <Text style={styles.forwardText}>{t('save')}</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            ) : currentQuestion.options.map((option) => {
               const isSelected = selectedAnswer === option;
-              const isCorrectOption = option.trim().toLowerCase() === currentQuestion.correctAnswer.trim().toLowerCase();
+              const isSelectedMultiple = selectedAnswers.includes(option);
+              const isCorrectOption = currentQuestion.correctAnswers.some((answer) => normalizeAnswer(answer) === normalizeAnswer(option));
               const showCorrect = Boolean(selectedAnswer && isCorrectOption);
-              const showWrong = Boolean(selectedAnswer && isSelected && !isCorrectOption);
+              const showWrong = Boolean(selectedAnswer && (isSelected || isSelectedMultiple) && !isCorrectOption);
 
               return (
                 <TouchableOpacity
@@ -293,10 +374,12 @@ export default function QuizScreen() {
                 >
                   <View style={[
                     styles.radioCircle,
+                    currentQuestion.type === 'multiple' && styles.checkboxCircle,
+                    isSelectedMultiple && !selectedAnswer && styles.radioPending,
                     showCorrect && styles.radioCorrect,
                     showWrong && styles.radioWrong,
                   ]}>
-                    {(showCorrect || showWrong) && <View style={styles.radioInner} />}
+                    {(showCorrect || showWrong || (isSelectedMultiple && !selectedAnswer)) && <View style={styles.radioInner} />}
                   </View>
                   <Text style={[
                     styles.optionText,
@@ -310,11 +393,22 @@ export default function QuizScreen() {
             })}
           </View>
 
-          {selectedAnswer && (
-            <View style={[styles.feedbackBox, selectedIsCorrect ? styles.feedbackCorrect : styles.feedbackWrong]}>
-              <Text style={styles.feedbackTitle}>{selectedIsCorrect ? t('correct') : t('wrongAnswer')}</Text>
+          {currentQuestion.type === 'multiple' && !selectedAnswer && (
+            <TouchableOpacity
+              style={[styles.forwardButton, selectedAnswers.length === 0 && styles.disabledButton]}
+              disabled={selectedAnswers.length === 0}
+              onPress={() => setSelectedAnswer(selectedAnswers.join(', '))}
+            >
+              <Text style={styles.forwardText}>{t('save')}</Text>
+            </TouchableOpacity>
+          )}
+
+          {hasAnswered && (
+            <View style={[styles.feedbackBox, isCurrentCorrect ? styles.feedbackCorrect : styles.feedbackWrong]}>
+              <Text style={styles.feedbackTitle}>{isCurrentCorrect ? t('correct') : t('wrongAnswer')}</Text>
+              <Text style={styles.feedbackLabel}>{t('detailedFeedback')}</Text>
               <Text style={styles.feedbackText}>
-                {selectedIsCorrect ? t('goodJob') : `${t('correctAnswer')}: ${currentQuestion.correctAnswer}`}
+                {feedbackText()}
               </Text>
             </View>
           )}
@@ -324,8 +418,8 @@ export default function QuizScreen() {
               <Text style={styles.backButtonText}>{t('cancel')}</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.forwardButton, (!selectedAnswer || saving) && styles.disabledButton]}
-              disabled={!selectedAnswer || saving}
+              style={[styles.forwardButton, (!hasAnswered || saving) && styles.disabledButton]}
+              disabled={!hasAnswered || saving}
               onPress={handleNext}
             >
               {saving ? <ActivityIndicator color="#FFF" /> : <Text style={styles.forwardText}>{isLastQuestion ? t('save') : t('continue')}</Text>}
@@ -372,14 +466,27 @@ const styles = StyleSheet.create({
   },
   radioCorrect: { backgroundColor: '#05C925', borderColor: '#05C925' },
   radioWrong: { backgroundColor: '#FF5F5F', borderColor: '#FF5F5F' },
+  radioPending: { backgroundColor: '#E9FBEF', borderColor: '#05C925' },
+  checkboxCircle: { borderRadius: 8 },
   radioInner: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#FFF' },
   optionText: { fontSize: 15, color: '#333', flex: 1 },
   optionTextCorrect: { color: '#05C925', fontWeight: '700' },
   optionTextWrong: { color: '#FF5F5F', fontWeight: '700' },
+  openInput: {
+    minHeight: 130,
+    borderRadius: 15,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    padding: 15,
+    color: '#333',
+    textAlignVertical: 'top',
+    marginBottom: 16,
+  },
   feedbackBox: { borderRadius: 15, borderWidth: 1, padding: 15, marginTop: 4 },
   feedbackCorrect: { borderColor: '#05C925', backgroundColor: '#F0FFF4' },
   feedbackWrong: { borderColor: '#FF5F5F', backgroundColor: '#FFF3F3' },
   feedbackTitle: { fontSize: 16, fontWeight: '800', color: '#333' },
+  feedbackLabel: { marginTop: 8, color: '#777', fontSize: 12, fontWeight: '800' },
   feedbackText: { marginTop: 4, color: '#555', lineHeight: 20 },
   navRow: { flexDirection: 'row', justifyContent: 'center', gap: 15, marginTop: 24 },
   backButton: {

@@ -3,11 +3,11 @@ import { StyleSheet, View, ImageBackground, SafeAreaView, Text, Image, Touchable
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, useFocusEffect, useLocalSearchParams } from 'expo-router'; 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Ionicons } from '@expo/vector-icons';
 import AppMessage from '../../components/AppMessage';
 import CustomTabBar from '../../components/CustomTabBar';
 import { FREE_MODULE_LIMIT, getStoredUser, isPremiumUser } from '../../constants/account';
 import { useLanguage } from '../../hooks/use-language';
-import { translate } from '../../constants/language';
 
 // Define the interface for Modules
 interface Module {
@@ -16,18 +16,21 @@ interface Module {
   title: string;
   description: string | null;
   questions?: unknown;
+  cover_image?: string | null;
+  icon?: string | null;
 }
 
 const getParam = (value: string | string[] | undefined) => Array.isArray(value) ? value[0] : value;
 
 const getCachedModule = async (module: Module) => {
   const cachedById = await AsyncStorage.getItem(`moduleQuestionsById:${module.id}`);
+  const localCover = await AsyncStorage.getItem(`moduleCover:${module.id}`);
   const cachedByTitle = await AsyncStorage.getItem(
     `moduleQuestions:${module.subject_id}:${module.title.trim().toLowerCase()}`
   );
   const cachedModule = cachedById || cachedByTitle;
 
-  if (!cachedModule) return module;
+  if (!cachedModule) return { ...module, cover_image: module.cover_image || module.icon || localCover };
 
   try {
     return {
@@ -37,6 +40,8 @@ const getCachedModule = async (module: Module) => {
       subject_id: module.subject_id,
       title: module.title,
       description: module.description,
+      cover_image: module.cover_image || localCover,
+      icon: module.icon || localCover,
     };
   } catch {
     return module;
@@ -45,7 +50,7 @@ const getCachedModule = async (module: Module) => {
 
 export default function ModulesScreen() {
   const router = useRouter();
-  const { t, language } = useLanguage();
+  const { t } = useLanguage();
   // 1. Get the subject info passed from the Home screen
   const { subjectId, subjectTitle } = useLocalSearchParams();
   const selectedSubjectTitle = getParam(subjectTitle);
@@ -188,7 +193,11 @@ export default function ModulesScreen() {
                 }}
               >
                 <View style={styles.moduleIconPlaceholder}>
-                  <Text style={styles.moduleEmoji}>🧩</Text>
+                  {item.cover_image || item.icon ? (
+                    <Image source={{ uri: item.cover_image || item.icon || '' }} style={styles.moduleCover} />
+                  ) : (
+                    <Ionicons name="book-outline" size={24} color="#05C925" />
+                  )}
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.moduleTitleText}>{item.title}</Text>
@@ -262,8 +271,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 15,
+    overflow: 'hidden',
   },
-  moduleEmoji: { fontSize: 24 },
+  moduleCover: { width: '100%', height: '100%' },
   moduleTitleText: { fontSize: 18, fontWeight: '700', color: '#333' },
   moduleSubText: { fontSize: 14, color: '#666' }
 });

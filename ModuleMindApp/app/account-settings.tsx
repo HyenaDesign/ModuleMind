@@ -8,11 +8,35 @@ import AppMessage from '../components/AppMessage';
 import { getStoredUser, saveStoredUser } from '../constants/account';
 import { useLanguage } from '../hooks/use-language';
 
+const API_URL = 'https://modulemindapi-production.up.railway.app';
+
+type Subject = {
+  id: number;
+};
+
+type Module = {
+  id: number;
+};
+
+const tryDelete = async (paths: string[]) => {
+  for (const path of paths) {
+    try {
+      const response = await fetch(`${API_URL}${path}`, { method: 'DELETE' });
+      if (response.ok || response.status === 404) return true;
+    } catch {
+      return false;
+    }
+  }
+
+  return false;
+};
+
 export default function AccountSettingsScreen() {
   const router = useRouter();
-  const { t, language } = useLanguage();
+  const { t } = useLanguage();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [clearingData, setClearingData] = useState(false);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -77,13 +101,61 @@ export default function AccountSettingsScreen() {
     }
   };
 
-  const handleClearLocalData = async () => {
-    const user = await getStoredUser();
-    const userId = String(user?.id || user?.user_id || 'guest');
-    const keys = await AsyncStorage.getAllKeys();
-    const moduleKeys = keys.filter((key) => key.startsWith('moduleQuestions') || key === `quizScores:${userId}`);
-    await AsyncStorage.multiRemove(moduleKeys);
-    setMessage({ text: t('localDataCleared'), tone: 'success' });
+  const handleClearLearningData = async () => {
+    setClearingData(true);
+    setMessage(null);
+
+    try {
+      const user = await getStoredUser();
+      const userId = String(user?.id || user?.user_id || 'guest');
+      let remoteDeleteFailed = false;
+
+      if (userId !== 'guest') {
+        try {
+          const subjectResponse = await fetch(`${API_URL}/subjects/${userId}`);
+          const subjects: Subject[] = subjectResponse.ok ? await subjectResponse.json() : [];
+
+          for (const subject of Array.isArray(subjects) ? subjects : []) {
+            const moduleResponse = await fetch(`${API_URL}/modules/${subject.id}`);
+            const modules: Module[] = moduleResponse.ok ? await moduleResponse.json() : [];
+
+            for (const module of Array.isArray(modules) ? modules : []) {
+              const deletedModule = await tryDelete([
+                `/modules/${module.id}`,
+                `/module/${module.id}`,
+                `/modules/detail/${module.id}`,
+              ]);
+              if (!deletedModule) remoteDeleteFailed = true;
+            }
+
+            const deletedSubject = await tryDelete([
+              `/subjects/${subject.id}`,
+              `/subject/${subject.id}`,
+            ]);
+            if (!deletedSubject) remoteDeleteFailed = true;
+          }
+        } catch {
+          remoteDeleteFailed = true;
+        }
+      }
+
+      const keys = await AsyncStorage.getAllKeys();
+      const removableKeys = keys.filter((key) => (
+        key.startsWith('moduleQuestions')
+        || key.startsWith('moduleCover:')
+        || key.startsWith('subjectCover:')
+        || key === 'selectedModule'
+        || key === `quizScores:${userId}`
+      ));
+      await AsyncStorage.multiRemove(removableKeys);
+
+      setMessage({
+        text: remoteDeleteFailed ? t('deleteLearningDataFailed') : t('learningDataCleared'),
+        tone: remoteDeleteFailed ? 'warning' : 'success',
+      });
+    } finally {
+      setClearingData(false);
+    }
   };
 
   if (loading) {
@@ -146,9 +218,13 @@ export default function AccountSettingsScreen() {
             {saving ? <ActivityIndicator color="#FFF" /> : <Text style={styles.primaryButtonText}>{t('save')}</Text>}
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.outlineButton} onPress={handleClearLocalData}>
+          <TouchableOpacity style={styles.outlineButton} onPress={handleClearLearningData} disabled={clearingData}>
             <Ionicons name="trash-outline" size={20} color="#FF5F5F" />
-            <Text style={styles.outlineButtonText}>{t('clearLocalData')}</Text>
+            {clearingData ? (
+              <ActivityIndicator color="#FF5F5F" />
+            ) : (
+              <Text style={styles.outlineButtonText}>{t('clearLearningData')}</Text>
+            )}
           </TouchableOpacity>
         </ScrollView>
       </SafeAreaView>

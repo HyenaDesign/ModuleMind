@@ -166,6 +166,6 @@ const styles = StyleSheet.create({
   discountBadge: { position: 'absolute', right: 0, top: 0, backgroundColor: '#E6E6E6', paddingHorizontal: 18, paddingVertical: 10, borderBottomLeftRadius: 6 },
   discountText: { color: '#444', fontSize: 11, fontWeight: '900' },
   spacer: { flex: 1, minHeight: 120 },
-  continueButton: { alignSelf: 'flex-end', width: 132, height: 54, borderRadius: 0, backgroundColor: '#05C925', alignItems: 'center', justifyContent: 'center' },
+  continueButton: { alignSelf: 'flex-end', width: 132, height: 54, borderRadius: 6, backgroundColor: '#05C925', alignItems: 'center', justifyContent: 'center' },
   continueText: { color: '#FFF', fontWeight: '800' },
 });

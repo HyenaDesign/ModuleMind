@@ -67,6 +67,9 @@ export type TranslationKey =
   | 'subject'
   | 'module'
   | 'clearLocalData'
+  | 'clearLearningData'
+  | 'learningDataCleared'
+  | 'deleteLearningDataFailed'
   | 'saved'
   | 'premiumSaved'
   | 'localDataCleared'
@@ -87,6 +90,18 @@ export type TranslationKey =
   | 'correctAnswer'
   | 'attempts'
   | 'generateQuestions'
+  | 'questionType'
+  | 'singleChoice'
+  | 'multipleChoice'
+  | 'openQuestion'
+  | 'selectAllCorrect'
+  | 'typeAnswer'
+  | 'detailedFeedback'
+  | 'whyCorrect'
+  | 'whyWrong'
+  | 'uploadCover'
+  | 'coverLoaded'
+  | 'uploadMaterial'
   | 'moduleTitleRequired'
   | 'subjectRequired'
   | 'fileLoadFailed'
@@ -155,6 +170,9 @@ const translations: Record<LanguageKey, Record<TranslationKey, string>> = {
     subject: 'Vak',
     module: 'Module',
     clearLocalData: 'Wis lokale scores en cache',
+    clearLearningData: 'Wis vakken, modules, scores en cache',
+    learningDataCleared: 'Vakken, modules, scores en cache zijn gewist.',
+    deleteLearningDataFailed: 'Niet alle vakken en modules konden worden gewist.',
     saved: 'Opgeslagen',
     premiumSaved: 'Je account is nu premium.',
     localDataCleared: 'Lokale modulescores en cache zijn gewist.',
@@ -175,6 +193,18 @@ const translations: Record<LanguageKey, Record<TranslationKey, string>> = {
     correctAnswer: 'Juist antwoord',
     attempts: 'pogingen',
     generateQuestions: 'Genereer vragen',
+    questionType: 'Vraagtype',
+    singleChoice: 'Meerkeuze',
+    multipleChoice: 'Meerdere antwoorden',
+    openQuestion: 'Open vraag',
+    selectAllCorrect: 'Selecteer alle juiste antwoorden.',
+    typeAnswer: 'Typ je antwoord...',
+    detailedFeedback: 'Uitleg',
+    whyCorrect: 'Je koos het juiste antwoord. Onthoud vooral waarom dit antwoord klopt.',
+    whyWrong: 'Je antwoord klopt niet. Vergelijk jouw antwoord met het juiste antwoord en let op het verschil in betekenis.',
+    uploadCover: 'Upload cover of icoon',
+    coverLoaded: 'Cover geladen!',
+    uploadMaterial: 'Upload PDF, DOCX of TXT',
     moduleTitleRequired: 'Geef je module eerst een titel.',
     subjectRequired: 'Open eerst een vak voordat je een module maakt.',
     fileLoadFailed: 'Kon bestand niet laden.',
@@ -242,6 +272,9 @@ const translations: Record<LanguageKey, Record<TranslationKey, string>> = {
     subject: 'Subject',
     module: 'Module',
     clearLocalData: 'Clear local scores and cache',
+    clearLearningData: 'Clear subjects, modules, scores and cache',
+    learningDataCleared: 'Subjects, modules, scores and cache were cleared.',
+    deleteLearningDataFailed: 'Not all subjects and modules could be cleared.',
     saved: 'Saved',
     premiumSaved: 'Your account is now premium.',
     localDataCleared: 'Local module scores and cache were cleared.',
@@ -262,6 +295,18 @@ const translations: Record<LanguageKey, Record<TranslationKey, string>> = {
     correctAnswer: 'Correct answer',
     attempts: 'attempts',
     generateQuestions: 'Generate questions',
+    questionType: 'Question type',
+    singleChoice: 'Multiple choice',
+    multipleChoice: 'Multiple answers',
+    openQuestion: 'Open question',
+    selectAllCorrect: 'Select all correct answers.',
+    typeAnswer: 'Type your answer...',
+    detailedFeedback: 'Explanation',
+    whyCorrect: 'You chose the right answer. Focus on why this answer is correct.',
+    whyWrong: 'Your answer is not correct. Compare your answer with the correct answer and notice the meaning difference.',
+    uploadCover: 'Upload cover or icon',
+    coverLoaded: 'Cover loaded!',
+    uploadMaterial: 'Upload PDF, DOCX or TXT',
     moduleTitleRequired: 'Give your module a title first.',
     subjectRequired: 'Open a subject before creating a module.',
     fileLoadFailed: 'Could not load the file.',
@@ -329,6 +374,9 @@ const translations: Record<LanguageKey, Record<TranslationKey, string>> = {
     subject: 'Matiere',
     module: 'Module',
     clearLocalData: 'Effacer scores et cache locaux',
+    clearLearningData: 'Effacer matieres, modules, scores et cache',
+    learningDataCleared: 'Matieres, modules, scores et cache effaces.',
+    deleteLearningDataFailed: 'Impossible d effacer toutes les matieres et modules.',
     saved: 'Enregistre',
     premiumSaved: 'Votre compte est maintenant premium.',
     localDataCleared: 'Scores et cache locaux effaces.',
@@ -349,6 +397,18 @@ const translations: Record<LanguageKey, Record<TranslationKey, string>> = {
     correctAnswer: 'Bonne reponse',
     attempts: 'tentatives',
     generateQuestions: 'Generer les questions',
+    questionType: 'Type de question',
+    singleChoice: 'Choix multiple',
+    multipleChoice: 'Plusieurs reponses',
+    openQuestion: 'Question ouverte',
+    selectAllCorrect: 'Selectionnez toutes les bonnes reponses.',
+    typeAnswer: 'Tapez votre reponse...',
+    detailedFeedback: 'Explication',
+    whyCorrect: 'Vous avez choisi la bonne reponse. Retenez pourquoi elle est correcte.',
+    whyWrong: 'Votre reponse est incorrecte. Comparez-la avec la bonne reponse.',
+    uploadCover: 'Importer une couverture ou icone',
+    coverLoaded: 'Couverture chargee!',
+    uploadMaterial: 'Importer PDF, DOCX ou TXT',
     moduleTitleRequired: 'Donnez d abord un titre au module.',
     subjectRequired: 'Ouvrez d abord une matiere.',
     fileLoadFailed: 'Impossible de charger le fichier.',
@@ -416,6 +476,9 @@ const translations: Record<LanguageKey, Record<TranslationKey, string>> = {
     subject: 'Fach',
     module: 'Modul',
     clearLocalData: 'Lokale Scores und Cache loschen',
+    clearLearningData: 'Facher, Module, Scores und Cache loschen',
+    learningDataCleared: 'Facher, Module, Scores und Cache wurden geloscht.',
+    deleteLearningDataFailed: 'Nicht alle Facher und Module konnten geloscht werden.',
     saved: 'Gespeichert',
     premiumSaved: 'Dein Konto ist jetzt Premium.',
     localDataCleared: 'Lokale Scores und Cache wurden geloscht.',
@@ -436,6 +499,18 @@ const translations: Record<LanguageKey, Record<TranslationKey, string>> = {
     correctAnswer: 'Richtige Antwort',
     attempts: 'Versuche',
     generateQuestions: 'Fragen generieren',
+    questionType: 'Fragetyp',
+    singleChoice: 'Multiple Choice',
+    multipleChoice: 'Mehrere Antworten',
+    openQuestion: 'Offene Frage',
+    selectAllCorrect: 'Wahle alle richtigen Antworten.',
+    typeAnswer: 'Antwort eingeben...',
+    detailedFeedback: 'Erklarung',
+    whyCorrect: 'Du hast die richtige Antwort gewahlt. Merke dir, warum sie stimmt.',
+    whyWrong: 'Deine Antwort ist nicht richtig. Vergleiche sie mit der richtigen Antwort.',
+    uploadCover: 'Cover oder Icon hochladen',
+    coverLoaded: 'Cover geladen!',
+    uploadMaterial: 'PDF, DOCX oder TXT hochladen',
     moduleTitleRequired: 'Gib dem Modul zuerst einen Titel.',
     subjectRequired: 'Offne zuerst ein Fach.',
     fileLoadFailed: 'Datei konnte nicht geladen werden.',

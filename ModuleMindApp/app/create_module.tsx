@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { 
-  StyleSheet, View, Text, TouchableOpacity, 
+  StyleSheet, View, Text, TouchableOpacity, Image,
   SafeAreaView, ActivityIndicator, ScrollView, TextInput 
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -11,12 +11,16 @@ import AppMessage from '../components/AppMessage';
 import { useLanguage } from '../hooks/use-language';
 import CustomTabBar from '../components/CustomTabBar';
 import { FREE_MODULE_LIMIT, getStoredUser, isPremiumUser } from '../constants/account';
-import { translate } from '../constants/language';
+
+type QuestionType = 'single' | 'multiple' | 'open';
 
 type QuizQuestion = {
   question: string;
   options: string[];
   correctAnswer: string;
+  correctAnswers: string[];
+  type: QuestionType;
+  explanation: string;
 };
 
 const asString = (value: unknown) => String(value ?? '').trim();
@@ -54,14 +58,25 @@ const normalizeQuestions = (rawQuestions: unknown): QuizQuestion[] => {
       const options = normalizeOptions(record.options).length > 0
         ? normalizeOptions(record.options)
         : [record.option_a, record.option_b, record.option_c, record.option_d].map(asString).filter(Boolean);
+      const correctAnswers = normalizeOptions(record.correctAnswers || record.correct_answers || record.answers);
+      const correctAnswer = asString(record.correctAnswer || record.correct_answer || record.answer || correctAnswers[0]);
+      const questionType = asString(record.type || record.questionType || record.question_type).toLowerCase();
+      const type: QuestionType = questionType.includes('open')
+        ? 'open'
+        : questionType.includes('multi') || correctAnswers.length > 1
+          ? 'multiple'
+          : 'single';
 
       return {
         question: asString(record.question || record.title || record.prompt),
         options,
-        correctAnswer: asString(record.correctAnswer || record.correct_answer || record.answer),
+        correctAnswer,
+        correctAnswers: correctAnswers.length > 0 ? correctAnswers : [correctAnswer].filter(Boolean),
+        type,
+        explanation: asString(record.explanation || record.feedback || record.reason),
       };
     })
-    .filter((question) => question.question && question.options.length > 0 && question.correctAnswer);
+    .filter((question) => question.question && (question.type === 'open' || question.options.length > 0) && question.correctAnswers.length > 0);
 };
 
 export default function CreateModuleScreen() {
@@ -83,6 +98,7 @@ export default function CreateModuleScreen() {
   const [selectedModel, setSelectedModel] = useState('gpt-4o');
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [coverImage, setCoverImage] = useState<DocumentPicker.DocumentPickerAsset | null>(null);
 
   // Step 3 Metadata State (afbeelding_7.png)
   const [moduleTitle, setModuleTitle] = useState('');
@@ -118,6 +134,21 @@ export default function CreateModuleScreen() {
     }
   };
 
+  const pickCoverImage = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: 'image/*',
+        copyToCacheDirectory: true,
+      });
+
+      if (!result.canceled && result.assets?.[0]) {
+        setCoverImage(result.assets[0]);
+      }
+    } catch {
+      setMessage({ text: t('fileLoadFailed'), tone: 'error' });
+    }
+  };
+
   // --- STEP 1 LOGIC: GENERATE AI ---
   const handleGenerateAI = async () => {
     if (!file || !file.assets) return;
@@ -143,6 +174,8 @@ export default function CreateModuleScreen() {
         type: type || 'application/octet-stream',
       });
       formData.append('model', selectedModel);
+      formData.append('questionTypes', JSON.stringify(['single', 'multiple', 'open']));
+      formData.append('includeExplanations', 'true');
 
       console.log('Attempting AI generation...', {
         uri: selectedFile.uri,
@@ -170,7 +203,7 @@ export default function CreateModuleScreen() {
       let data;
       try {
         data = JSON.parse(responseText);
-      } catch (e) {
+      } catch {
         console.error('Non-JSON response received:', responseText.substring(0, 200));
         setMessage({ text: t('generationFailed'), tone: 'error' });
         return;
@@ -212,7 +245,8 @@ export default function CreateModuleScreen() {
   const updateOptionText = (text: string, index: number) => {
     const newQuestions = [...questions];
     const currentQ = newQuestions[currentIndex];
-    if (currentQ.options[index] === currentQ.correctAnswer) {
+    if (currentQ.correctAnswers.includes(currentQ.options[index])) {
+      currentQ.correctAnswers = currentQ.correctAnswers.map((answer) => answer === currentQ.options[index] ? text : answer);
       currentQ.correctAnswer = text;
     }
     currentQ.options[index] = text;
@@ -221,7 +255,42 @@ export default function CreateModuleScreen() {
 
   const toggleCorrectAnswer = (optionText: string) => {
     const newQuestions = [...questions];
-    newQuestions[currentIndex].correctAnswer = optionText;
+    const currentQ = newQuestions[currentIndex];
+    if (currentQ.type === 'multiple') {
+      currentQ.correctAnswers = currentQ.correctAnswers.includes(optionText)
+        ? currentQ.correctAnswers.filter((answer) => answer !== optionText)
+        : [...currentQ.correctAnswers, optionText];
+      currentQ.correctAnswer = currentQ.correctAnswers.join(', ');
+    } else {
+      currentQ.correctAnswers = [optionText];
+      currentQ.correctAnswer = optionText;
+    }
+    setQuestions(newQuestions);
+  };
+
+  const updateQuestionType = (type: QuestionType) => {
+    const newQuestions = [...questions];
+    const currentQ = newQuestions[currentIndex];
+    currentQ.type = type;
+    if (type === 'open') {
+      currentQ.options = [];
+      currentQ.correctAnswers = [currentQ.correctAnswer || currentQ.correctAnswers[0] || ''];
+    } else if (currentQ.options.length === 0) {
+      currentQ.options = ['', '', '', ''];
+    }
+    setQuestions(newQuestions);
+  };
+
+  const updateCorrectOpenAnswer = (text: string) => {
+    const newQuestions = [...questions];
+    newQuestions[currentIndex].correctAnswer = text;
+    newQuestions[currentIndex].correctAnswers = [text];
+    setQuestions(newQuestions);
+  };
+
+  const updateExplanation = (text: string) => {
+    const newQuestions = [...questions];
+    newQuestions[currentIndex].explanation = text;
     setQuestions(newQuestions);
   };
 
@@ -268,6 +337,8 @@ export default function CreateModuleScreen() {
           subject_id: subjectIdNumber,
           title: moduleTitle,
           description: moduleDesc,
+          cover_image: coverImage?.uri || null,
+          icon: coverImage?.uri || null,
           questions,
           subjectTitle: selectedSubjectTitle,
         };
@@ -279,10 +350,15 @@ export default function CreateModuleScreen() {
 
         if (savedModuleId) {
           await AsyncStorage.setItem(`moduleQuestionsById:${savedModuleId}`, JSON.stringify(cachedModule));
+          if (coverImage?.uri) {
+            await AsyncStorage.setItem(`moduleCover:${savedModuleId}`, coverImage.uri);
+          }
         }
 
         setMessage({ text: t('moduleSaved'), tone: 'success' });
         router.back();
+      } else {
+        setMessage({ text: t('moduleSaveFailed'), tone: 'error' });
       }
     } catch {
       setMessage({ text: t('moduleSaveFailed'), tone: 'error' });
@@ -355,11 +431,32 @@ export default function CreateModuleScreen() {
               <View style={styles.divider} />
 
               <View style={styles.optionsList}>
-                {questions[currentIndex].options.map((opt, i) => {
-  const optStr = String(opt || "");
-  const correctStr = String(questions[currentIndex].correctAnswer || "");
+                <Text style={styles.sectionLabel}>{t('questionType')}</Text>
+                <View style={styles.typeRow}>
+                  {(['single', 'multiple', 'open'] as QuestionType[]).map((type) => (
+                    <TouchableOpacity
+                      key={type}
+                      style={[styles.typePill, questions[currentIndex].type === type && styles.typePillActive]}
+                      onPress={() => updateQuestionType(type)}
+                    >
+                      <Text style={[styles.typePillText, questions[currentIndex].type === type && styles.typePillTextActive]}>
+                        {type === 'single' ? t('singleChoice') : type === 'multiple' ? t('multipleChoice') : t('openQuestion')}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
 
-  const isCorrect = optStr.trim().toLowerCase() === correctStr.trim().toLowerCase();
+                {questions[currentIndex].type === 'open' ? (
+                  <TextInput
+                    style={styles.inputField}
+                    placeholder={t('correctAnswer')}
+                    value={questions[currentIndex].correctAnswer}
+                    onChangeText={updateCorrectOpenAnswer}
+                  />
+                ) : questions[currentIndex].options.map((opt, i) => {
+  const optStr = String(opt || "");
+
+  const isCorrect = questions[currentIndex].correctAnswers.some((answer) => optStr.trim().toLowerCase() === answer.trim().toLowerCase());
 
   return (
     <View key={i} style={styles.optionRow}>
@@ -377,6 +474,14 @@ export default function CreateModuleScreen() {
     </View>
   );
 })}
+                <Text style={styles.sectionLabel}>{t('detailedFeedback')}</Text>
+                <TextInput
+                  style={[styles.inputField, { height: 90, textAlignVertical: 'top' }]}
+                  multiline
+                  placeholder={t('detailedFeedback')}
+                  value={questions[currentIndex].explanation}
+                  onChangeText={updateExplanation}
+                />
               </View>
 
               <View style={styles.navRow}>
@@ -402,12 +507,17 @@ export default function CreateModuleScreen() {
             <View style={{ marginTop: 20 }}>
               <Text style={styles.title}>{selectedSubjectTitle ? `${language === 'nl' ? 'Module maken voor' : 'Create module for'} ${selectedSubjectTitle}` : t('createFirstModule')}</Text>
 
-              <View style={styles.imageUploadPlaceholder}>
-                <Ionicons name="image-outline" size={50} color="#CCC" />
+              <TouchableOpacity style={styles.imageUploadPlaceholder} onPress={pickCoverImage}>
+                {coverImage?.uri ? (
+                  <Image source={{ uri: coverImage.uri }} style={styles.coverImage} />
+                ) : (
+                  <Ionicons name="image-outline" size={50} color="#CCC" />
+                )}
                 <View style={styles.addIconSmall}>
                   <Ionicons name="add" size={16} color="#FFF" />
                 </View>
-              </View>
+              </TouchableOpacity>
+              <Text style={styles.coverLabel}>{coverImage ? t('coverLoaded') : t('uploadCover')}</Text>
 
               <TextInput
                 style={styles.inputField}
@@ -473,6 +583,11 @@ const styles = StyleSheet.create({
   radioInner: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#FFF' },
   optionInput: { fontSize: 15, color: '#333', flex: 1 },
   optionTextCorrect: { color: '#05C925', fontWeight: '600' },
+  typeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
+  typePill: { borderWidth: 1, borderColor: '#E5E5E5', borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8, backgroundColor: '#FFF' },
+  typePillActive: { borderColor: '#05C925', backgroundColor: '#E9FBEF' },
+  typePillText: { color: '#555', fontWeight: '700', fontSize: 12 },
+  typePillTextActive: { color: '#05C925' },
   navRow: { flexDirection: 'row', justifyContent: 'center', gap: 15, marginTop: 20 },
   backButton: { width: 55, height: 55, borderRadius: 15, borderWidth: 1, borderColor: '#05C925', alignItems: 'center', justifyContent: 'center' },
   backButtonOutline: { flex: 1, height: 55, borderRadius: 15, borderWidth: 1, borderColor: '#05C925', alignItems: 'center', justifyContent: 'center' },
@@ -480,7 +595,9 @@ const styles = StyleSheet.create({
   forwardText: { color: '#FFF', fontSize: 16, fontWeight: '700' },
   
   // Step 3 specific
-  imageUploadPlaceholder: { width: 200, height: 200, backgroundColor: '#F8F8F8', borderRadius: 40, alignSelf: 'center', justifyContent: 'center', alignItems: 'center', marginBottom: 40, marginTop: 20, borderWidth: 1, borderColor: '#EEE' },
+  imageUploadPlaceholder: { width: 200, height: 200, backgroundColor: '#F8F8F8', borderRadius: 40, alignSelf: 'center', justifyContent: 'center', alignItems: 'center', marginBottom: 40, marginTop: 20, borderWidth: 1, borderColor: '#EEE', overflow: 'hidden' },
+  coverImage: { width: '100%', height: '100%' },
+  coverLabel: { color: '#777', fontWeight: '700', textAlign: 'center', marginTop: -30, marginBottom: 22 },
   addIconSmall: { position: 'absolute', bottom: 65, right: 65, backgroundColor: '#CCC', borderRadius: 6, width: 22, height: 22, justifyContent: 'center', alignItems: 'center' },
   inputField: { borderWidth: 1, borderColor: '#EEE', borderRadius: 12, padding: 15, marginBottom: 15, fontSize: 16, color: '#444' },
 });
