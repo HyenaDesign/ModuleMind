@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { 
   StyleSheet, View, Text, TouchableOpacity, Image,
-  SafeAreaView, ActivityIndicator, ScrollView, TextInput 
+  SafeAreaView, ActivityIndicator, ScrollView, TextInput, Platform
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
@@ -167,20 +167,36 @@ export default function CreateModuleScreen() {
         else if (selectedFile.name.toLowerCase().endsWith('.txt')) type = 'text/plain';
       }
 
-      // @ts-ignore
-      formData.append('file', {
-        uri: selectedFile.uri,
-        name: selectedFile.name || 'document',
-        type: type || 'application/octet-stream',
-      });
-      formData.append('model', selectedModel);
+      const normalizedModel = selectedModel === 'gpt-3.5' ? 'gpt-3.5-turbo' : selectedModel;
+
+      if (Platform.OS === 'web') {
+        const webFile = (selectedFile as any).file;
+        if (webFile instanceof Blob) {
+          formData.append('file', webFile, selectedFile.name || 'document');
+        } else {
+          formData.append('file', new Blob([selectedFile.uri], { type: type || 'application/octet-stream' }), selectedFile.name || 'document');
+        }
+      } else {
+        // @ts-ignore
+        formData.append('file', {
+          uri: selectedFile.uri,
+          name: selectedFile.name || 'document',
+          type: type || 'application/octet-stream',
+        });
+      }
+
+      formData.append('model', normalizedModel);
       formData.append('questionTypes', JSON.stringify(['single', 'multiple', 'open']));
       formData.append('includeExplanations', 'true');
+      formData.append('question_types', JSON.stringify(['single', 'multiple', 'open']));
+      formData.append('include_explanations', 'true');
 
       console.log('Attempting AI generation...', {
         uri: selectedFile.uri,
         name: selectedFile.name,
-        type: type
+        type: type,
+        model: normalizedModel,
+        platform: Platform.OS,
       });
 
       const controller = new AbortController();

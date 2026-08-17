@@ -15,6 +15,19 @@ export type TranslationKey =
   | 'search'
   | 'subjects'
   | 'modules'
+  | 'teacherDashboard'
+  | 'teacherAccessId'
+  | 'teacherAccessHint'
+  | 'studentRole'
+  | 'teacherRole'
+  | 'students'
+  | 'classes'
+  | 'classPerformance'
+  | 'attentionNeeded'
+  | 'recentModules'
+  | 'averageScore'
+  | 'completion'
+  | 'progress'
   | 'premiumUser'
   | 'freeUser'
   | 'editProfile'
@@ -118,6 +131,19 @@ const translations: Record<LanguageKey, Record<TranslationKey, string>> = {
     search: 'Zoeken',
     subjects: 'Vakken',
     modules: 'Modules',
+    teacherDashboard: 'Leerkracht',
+    teacherAccessId: 'Leerkracht/admin ID',
+    teacherAccessHint: 'Optioneel, bv. MODULEMIND-TEACHER',
+    studentRole: 'Student',
+    teacherRole: 'Leerkracht',
+    students: 'Leerlingen',
+    classes: 'Klassen',
+    classPerformance: 'Klasprestaties',
+    attentionNeeded: 'Aandacht nodig',
+    recentModules: 'Recente modules',
+    averageScore: 'Gem. score',
+    completion: 'Voltooiing',
+    progress: 'Vooruitgang',
     premiumUser: 'Premium gebruiker',
     freeUser: 'Gratis gebruiker',
     editProfile: 'Bewerk profiel',
@@ -220,6 +246,19 @@ const translations: Record<LanguageKey, Record<TranslationKey, string>> = {
     search: 'Search',
     subjects: 'Subjects',
     modules: 'Modules',
+    teacherDashboard: 'Teacher',
+    teacherAccessId: 'Teacher/admin ID',
+    teacherAccessHint: 'Optional, e.g. MODULEMIND-TEACHER',
+    studentRole: 'Student',
+    teacherRole: 'Teacher',
+    students: 'Students',
+    classes: 'Classes',
+    classPerformance: 'Class performance',
+    attentionNeeded: 'Attention needed',
+    recentModules: 'Recent modules',
+    averageScore: 'Avg. score',
+    completion: 'Completion',
+    progress: 'Progress',
     premiumUser: 'Premium user',
     freeUser: 'Free user',
     editProfile: 'Edit profile',
@@ -322,6 +361,19 @@ const translations: Record<LanguageKey, Record<TranslationKey, string>> = {
     search: 'Rechercher',
     subjects: 'Matieres',
     modules: 'Modules',
+    teacherDashboard: 'Enseignant',
+    teacherAccessId: 'ID enseignant/admin',
+    teacherAccessHint: 'Optionnel, ex. MODULEMIND-TEACHER',
+    studentRole: 'Etudiant',
+    teacherRole: 'Enseignant',
+    students: 'Eleves',
+    classes: 'Classes',
+    classPerformance: 'Performance de classe',
+    attentionNeeded: 'Attention requise',
+    recentModules: 'Modules recents',
+    averageScore: 'Score moyen',
+    completion: 'Completion',
+    progress: 'Progression',
     premiumUser: 'Utilisateur premium',
     freeUser: 'Utilisateur gratuit',
     editProfile: 'Modifier le profil',
@@ -424,6 +476,19 @@ const translations: Record<LanguageKey, Record<TranslationKey, string>> = {
     search: 'Suche',
     subjects: 'Facher',
     modules: 'Module',
+    teacherDashboard: 'Lehrkraft',
+    teacherAccessId: 'Lehrkraft/Admin ID',
+    teacherAccessHint: 'Optional, z.B. MODULEMIND-TEACHER',
+    studentRole: 'Student',
+    teacherRole: 'Lehrkraft',
+    students: 'Schuler',
+    classes: 'Klassen',
+    classPerformance: 'Klassenleistung',
+    attentionNeeded: 'Aufmerksamkeit notig',
+    recentModules: 'Aktuelle Module',
+    averageScore: 'Durchschn. Score',
+    completion: 'Abschluss',
+    progress: 'Fortschritt',
     premiumUser: 'Premium Nutzer',
     freeUser: 'Kostenloser Nutzer',
     editProfile: 'Profil bearbeiten',
@@ -536,3 +601,4 @@ export const setStoredLanguage = async (language: LanguageKey) => {
 };
 
 export const translate = (language: LanguageKey, key: TranslationKey) => translations[language][key];
+

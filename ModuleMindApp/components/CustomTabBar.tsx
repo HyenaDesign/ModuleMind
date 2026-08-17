@@ -2,12 +2,14 @@ import { useCallback, useState } from 'react';
 import { View, Pressable, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
+import { getStoredUser, isTeacherUser } from '../constants/account';
 import { getStoredLanguage, LanguageKey, translate } from '../constants/language';
 
 const TABS = [
   { id: 'Home', icon: 'home-outline', labelKey: 'home', path: '/(tabs)/Home' },
   { id: 'Modules', icon: 'book-outline', labelKey: 'modules', path: '/(tabs)/Modules' },
   { id: 'Search', icon: 'search-outline', labelKey: 'search', path: '/(tabs)/explore' },
+  { id: 'Teacher', icon: 'people-outline', labelKey: 'teacherDashboard', path: '/(tabs)/Teacher' },
   { id: 'Profile', icon: 'person-outline', labelKey: 'profile', path: '/(tabs)/Profile' },
 ] as const;
 
@@ -18,17 +20,19 @@ interface Props {
 export default function CustomTabBar({ activeTab }: Props) {
   const router = useRouter();
   const [language, setLanguage] = useState<LanguageKey>('nl');
+  const [showTeacherTab, setShowTeacherTab] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
       getStoredLanguage().then(setLanguage);
+      getStoredUser().then((user) => setShowTeacherTab(isTeacherUser(user)));
     }, [])
   );
 
   return (
     <View style={styles.wrapper}>
       <View style={styles.container}>
-        {TABS.map((tab) => {
+        {TABS.filter((tab) => tab.id !== 'Teacher' || showTeacherTab).map((tab) => {
           const isFocused = activeTab === tab.id;
 
           return (
@@ -94,3 +98,4 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
 });
+

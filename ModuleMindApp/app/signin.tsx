@@ -16,6 +16,7 @@ import { Ionicons, FontAwesome, AntDesign } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import AppMessage from '../components/AppMessage';
+import { isTeacherAccessId, normalizeTeacherAccessId } from '../constants/account';
 import { useLanguage } from '../hooks/use-language';
 
 
@@ -26,6 +27,7 @@ export default function SignInScreen() {
   // --- 1. State for Inputs ---
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [teacherAccessId, setTeacherAccessId] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -45,7 +47,7 @@ export default function SignInScreen() {
       const response = await fetch('https://modulemindapi-production.up.railway.app/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, admin_id: normalizeTeacherAccessId(teacherAccessId), teacher_id: normalizeTeacherAccessId(teacherAccessId) }),
       });
 
       const data = await response.json();
@@ -55,13 +57,18 @@ export default function SignInScreen() {
           await AsyncStorage.setItem('token', data.token);
         }
         const loggedInUser = data.user || {};
+        const normalizedTeacherId = normalizeTeacherAccessId(loggedInUser.teacher_id || loggedInUser.admin_id || teacherAccessId);
+        const role = loggedInUser.role || (isTeacherAccessId(normalizedTeacherId) ? 'teacher' : 'student');
         await AsyncStorage.setItem('user', JSON.stringify({
           ...loggedInUser,
           id: loggedInUser.id || loggedInUser.user_id || data.id || data.user_id,
           name: loggedInUser.name || loggedInUser.full_name || email.split('@')[0],
           email: loggedInUser.email || data.email || email,
+          role,
+          admin_id: normalizedTeacherId || loggedInUser.admin_id,
+          teacher_id: normalizedTeacherId || loggedInUser.teacher_id,
         }));
-        router.replace('/(tabs)/Home'); 
+        router.replace(role === 'teacher' || role === 'admin' ? '/(tabs)/Teacher' : '/(tabs)/Home'); 
       } else {
         setMessage(data.message || t('invalidLogin'));
       }
@@ -121,6 +128,17 @@ export default function SignInScreen() {
                   secureTextEntry 
                   value={password}
                   onChangeText={setPassword}
+                />
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>{t('teacherAccessId')}</Text>
+                <TextInput 
+                  style={styles.input} 
+                  placeholder={t('teacherAccessHint')} 
+                  value={teacherAccessId}
+                  onChangeText={setTeacherAccessId}
+                  autoCapitalize="characters"
                 />
               </View>
 
@@ -327,3 +345,4 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
 });
+

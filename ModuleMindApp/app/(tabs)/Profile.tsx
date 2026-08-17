@@ -6,7 +6,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import AppMessage from '../../components/AppMessage';
 import CustomTabBar from '../../components/CustomTabBar';
-import { getStoredUser, isPremiumUser, StoredUser } from '../../constants/account';
+import { getStoredUser, isPremiumUser, isTeacherUser, StoredUser } from '../../constants/account';
 import { useLanguage } from '../../hooks/use-language';
 
 const ProfileScreen = () => {
@@ -16,6 +16,7 @@ const ProfileScreen = () => {
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState<string | null>(null);
   const premium = isPremiumUser(userData);
+  const teacher = isTeacherUser(userData);
 
   const fetchUserData = useCallback(async () => {
     try {
@@ -99,6 +100,17 @@ const ProfileScreen = () => {
               <Ionicons name="arrow-forward" size={20} color="#333333" />
             </TouchableOpacity>
 
+            {teacher && (
+              <TouchableOpacity
+                style={styles.menuItem}
+                activeOpacity={0.8}
+                onPress={() => router.push('/(tabs)/Teacher')}
+              >
+                <Ionicons name="people-outline" size={20} color="#555555" />
+                <Text style={styles.menuText}>{t('teacherDashboard')}</Text>
+                <Ionicons name="arrow-forward" size={20} color="#333333" />
+              </TouchableOpacity>
+            )}
             <TouchableOpacity
               style={styles.menuItem}
               activeOpacity={0.8}
@@ -277,3 +289,4 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
 });
+
