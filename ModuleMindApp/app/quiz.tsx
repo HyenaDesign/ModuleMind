@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
@@ -6,6 +6,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import AppMessage from '../components/AppMessage';
 import CustomTabBar from '../components/CustomTabBar';
 import { useLanguage } from '../hooks/use-language';
+import { calculateXp, getLevelStats } from '../constants/progress';
 
 type QuizQuestion = {
   question: string;
@@ -34,6 +35,7 @@ type QuizScore = {
   total: number;
   percentage: number;
   completedAt: string;
+  durationSeconds?: number;
   answers: SavedAnswer[];
 };
 
@@ -41,6 +43,29 @@ const asString = (value: unknown) => String(value ?? '').trim();
 
 const getParam = (value: string | string[] | undefined) => Array.isArray(value) ? value[0] : value;
 
+const startOfDay = (date: Date) => new Date(date.getFullYear(), date.getMonth(), date.getDate());
+const addDays = (date: Date, days: number) => {
+  const nextDate = new Date(date);
+  nextDate.setDate(nextDate.getDate() + days);
+  return nextDate;
+};
+const dateKey = (date: Date) => `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
+
+const getStreak = (scores: QuizScore[]) => {
+  const completedDays = new Set(scores.map((score) => dateKey(startOfDay(new Date(score.completedAt)))));
+  if (completedDays.size === 0) return 0;
+
+  const today = startOfDay(new Date());
+  let cursor = completedDays.has(dateKey(today)) ? today : addDays(today, -1);
+  let streak = 0;
+
+  while (completedDays.has(dateKey(cursor))) {
+    streak += 1;
+    cursor = addDays(cursor, -1);
+  }
+
+  return streak;
+};
 const normalizeOptions = (rawOptions: unknown) => {
   if (Array.isArray(rawOptions)) {
     return rawOptions.map(asString).filter(Boolean);
@@ -122,6 +147,7 @@ export default function QuizScreen() {
   const [answers, setAnswers] = useState<SavedAnswer[]>([]);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const sessionStartedAt = useRef<number | null>(null);
 
   const currentQuestion = questions[currentIndex];
   const isLastQuestion = currentIndex === questions.length - 1;
@@ -135,6 +161,7 @@ export default function QuizScreen() {
 
       if (localQuestions.length > 0) {
         setQuestions(localQuestions);
+        sessionStartedAt.current = Date.now();
         return;
       }
 
@@ -148,6 +175,7 @@ export default function QuizScreen() {
         const cachedQuestions = normalizeQuestions(JSON.parse(cachedModule).questions);
         if (cachedQuestions.length > 0) {
           setQuestions(cachedQuestions);
+          sessionStartedAt.current = Date.now();
           return;
         }
       }
@@ -169,6 +197,12 @@ export default function QuizScreen() {
     return `${currentIndex + 1} / ${questions.length}`;
   }, [currentIndex, questions.length]);
 
+  const correctCompliments = useMemo(() => [
+    t('correctCompliment1'),
+    t('correctCompliment2'),
+    t('correctCompliment3'),
+    t('correctCompliment4'),
+  ], [t]);
   const saveScore = async (finalAnswers: SavedAnswer[]) => {
     setSaving(true);
     try {
@@ -177,6 +211,12 @@ export default function QuizScreen() {
       const userId = String(userData.id || userData.user_id || 'guest');
       const correct = finalAnswers.filter((answer) => answer.isCorrect).length;
       const total = questions.length;
+      const completedAt = new Date();
+      const durationSeconds = Math.max(1, Math.round((Date.now() - (sessionStartedAt.current || Date.now())) / 1000));
+      const storageKey = `quizScores:${userId}`;
+      const storedScores = await AsyncStorage.getItem(storageKey);
+      const scores: QuizScore[] = storedScores ? JSON.parse(storedScores) : [];
+      const firstModuleToday = !scores.some((score) => dateKey(startOfDay(new Date(score.completedAt))) === dateKey(completedAt));
       const score: QuizScore = {
         id: `${Date.now()}-${moduleId || 'module'}`,
         userId,
@@ -187,14 +227,29 @@ export default function QuizScreen() {
         correct,
         total,
         percentage: total ? Math.round((correct / total) * 100) : 0,
-        completedAt: new Date().toISOString(),
+        completedAt: completedAt.toISOString(),
+        durationSeconds,
         answers: finalAnswers,
       };
-      const storageKey = `quizScores:${userId}`;
-      const storedScores = await AsyncStorage.getItem(storageKey);
-      const scores = storedScores ? JSON.parse(storedScores) : [];
-      await AsyncStorage.setItem(storageKey, JSON.stringify([score, ...scores]));
-      router.replace('/scores');
+      const previousXp = calculateXp(scores);
+      const nextScores = [score, ...scores];
+      const nextXp = calculateXp(nextScores);
+      const previousLevel = getLevelStats(previousXp).level;
+      const nextLevel = getLevelStats(nextXp).level;
+      await AsyncStorage.setItem(storageKey, JSON.stringify(nextScores));
+
+      router.replace({
+        pathname: '/reward-interstitial',
+        params: {
+          previousXp,
+          nextXp,
+          gainedXp: nextXp - previousXp,
+          previousLevel,
+          nextLevel,
+          showStreak: firstModuleToday ? 'true' : 'false',
+          streak: getStreak(nextScores),
+        },
+      });
     } catch {
       setMessage(t('saveScoreFailed'));
     } finally {
@@ -405,7 +460,7 @@ export default function QuizScreen() {
 
           {hasAnswered && (
             <View style={[styles.feedbackBox, isCurrentCorrect ? styles.feedbackCorrect : styles.feedbackWrong]}>
-              <Text style={styles.feedbackTitle}>{isCurrentCorrect ? t('correct') : t('wrongAnswer')}</Text>
+              <Text style={styles.feedbackTitle}>{isCurrentCorrect ? correctCompliments[currentIndex % correctCompliments.length] : t('wrongAnswer')}</Text>
               <Text style={styles.feedbackLabel}>{t('detailedFeedback')}</Text>
               <Text style={styles.feedbackText}>
                 {feedbackText()}
@@ -522,3 +577,4 @@ const styles = StyleSheet.create({
   emptyTitle: { textAlign: 'center', color: '#05C925', fontWeight: '800', fontSize: 18 },
   emptyText: { textAlign: 'center', color: '#555', marginTop: 8 },
 });
+

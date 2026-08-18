@@ -1,4 +1,5 @@
 import React, { useCallback, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ActivityIndicator, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -32,11 +33,19 @@ export default function PremiumScreen() {
   const handleContinue = async () => {
     setSaving(true);
     try {
-      await saveStoredUser({
+      const user = await saveStoredUser({
         premium: true,
         status: 'premium',
         premiumPlan: selectedPlan,
       });
+      const normalizedEmail = String(user.email || '').trim().toLowerCase();
+      if (normalizedEmail) {
+        await AsyncStorage.setItem(`accountStatus:${normalizedEmail}`, JSON.stringify({
+          premium: true,
+          status: 'premium',
+          premiumPlan: selectedPlan,
+        }));
+      }
       setMessage(t('premiumSaved'));
       router.replace('/(tabs)/Profile');
     } finally {
@@ -169,3 +178,4 @@ const styles = StyleSheet.create({
   continueButton: { alignSelf: 'flex-end', width: 132, height: 54, borderRadius: 6, backgroundColor: '#05C925', alignItems: 'center', justifyContent: 'center' },
   continueText: { color: '#FFF', fontWeight: '800' },
 });
+

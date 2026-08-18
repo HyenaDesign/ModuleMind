@@ -57,19 +57,34 @@ export default function SignInScreen() {
           await AsyncStorage.setItem('token', data.token);
         }
         const loggedInUser = data.user || {};
+        const normalizedEmail = String(loggedInUser.email || data.email || email).trim().toLowerCase();
+        const storedAccountStatus = await AsyncStorage.getItem(`accountStatus:${normalizedEmail}`);
+        const parsedAccountStatus = storedAccountStatus ? JSON.parse(storedAccountStatus) : {};
+        const currentUser = await AsyncStorage.getItem('user');
+        const currentUserData = currentUser ? JSON.parse(currentUser) : {};
+        const keepCurrentSubscription = String(currentUserData.email || '').trim().toLowerCase() === normalizedEmail;
         const normalizedTeacherId = normalizeTeacherAccessId(loggedInUser.teacher_id || loggedInUser.admin_id || teacherAccessId);
         const role = loggedInUser.role || (isTeacherAccessId(normalizedTeacherId) ? 'teacher' : 'student');
-        await AsyncStorage.setItem('user', JSON.stringify({
+        const mergedUser = {
+          ...(keepCurrentSubscription ? currentUserData : {}),
           ...loggedInUser,
-          id: loggedInUser.id || loggedInUser.user_id || data.id || data.user_id,
-          name: loggedInUser.name || loggedInUser.full_name || email.split('@')[0],
+          ...parsedAccountStatus,
+          id: loggedInUser.id || loggedInUser.user_id || data.id || data.user_id || currentUserData.id,
+          name: loggedInUser.name || loggedInUser.full_name || currentUserData.name || email.split('@')[0],
           email: loggedInUser.email || data.email || email,
           role,
           admin_id: normalizedTeacherId || loggedInUser.admin_id,
           teacher_id: normalizedTeacherId || loggedInUser.teacher_id,
-        }));
-        router.replace(role === 'teacher' || role === 'admin' ? '/(tabs)/Teacher' : '/(tabs)/Home'); 
-      } else {
+        };
+        await AsyncStorage.setItem('user', JSON.stringify(mergedUser));
+        if (normalizedEmail && (mergedUser.premium || mergedUser.status === 'premium')) {
+          await AsyncStorage.setItem(`accountStatus:${normalizedEmail}`, JSON.stringify({
+            premium: Boolean(mergedUser.premium || mergedUser.status === 'premium'),
+            status: mergedUser.status || 'premium',
+            premiumPlan: mergedUser.premiumPlan,
+          }));
+        }
+        router.replace(role === 'teacher' || role === 'admin' ? '/(tabs)/Teacher' : '/(tabs)/Home'); } else {
         setMessage(data.message || t('invalidLogin'));
       }
     } catch {

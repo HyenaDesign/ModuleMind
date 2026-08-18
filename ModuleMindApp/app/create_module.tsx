@@ -348,8 +348,9 @@ export default function CreateModuleScreen() {
         }
 
         const savedModuleId = data.id || data.module_id || data.module?.id;
+        const localModuleId = savedModuleId || Date.now();
         const cachedModule = {
-          id: savedModuleId || null,
+          id: localModuleId,
           subject_id: subjectIdNumber,
           title: moduleTitle,
           description: moduleDesc,
@@ -363,12 +364,19 @@ export default function CreateModuleScreen() {
           `moduleQuestions:${subjectIdNumber}:${moduleTitle.trim().toLowerCase()}`,
           JSON.stringify(cachedModule)
         );
+        await AsyncStorage.setItem(`moduleQuestionsById:${localModuleId}`, JSON.stringify(cachedModule));
 
-        if (savedModuleId) {
-          await AsyncStorage.setItem(`moduleQuestionsById:${savedModuleId}`, JSON.stringify(cachedModule));
-          if (coverImage?.uri) {
-            await AsyncStorage.setItem(`moduleCover:${savedModuleId}`, coverImage.uri);
-          }
+        const localModulesKey = `localModules:${subjectIdNumber}`;
+        const storedLocalModules = await AsyncStorage.getItem(localModulesKey);
+        const localModules = storedLocalModules ? JSON.parse(storedLocalModules) : [];
+        const nextLocalModules = [
+          cachedModule,
+          ...localModules.filter((module: { id: number; title: string }) => module.id !== localModuleId && module.title.trim().toLowerCase() !== moduleTitle.trim().toLowerCase()),
+        ];
+        await AsyncStorage.setItem(localModulesKey, JSON.stringify(nextLocalModules));
+
+        if (coverImage?.uri) {
+          await AsyncStorage.setItem(`moduleCover:${localModuleId}`, coverImage.uri);
         }
 
         setMessage({ text: t('moduleSaved'), tone: 'success' });
@@ -617,3 +625,4 @@ const styles = StyleSheet.create({
   addIconSmall: { position: 'absolute', bottom: 65, right: 65, backgroundColor: '#CCC', borderRadius: 6, width: 22, height: 22, justifyContent: 'center', alignItems: 'center' },
   inputField: { borderWidth: 1, borderColor: '#EEE', borderRadius: 12, padding: 15, marginBottom: 15, fontSize: 16, color: '#444' },
 });
+

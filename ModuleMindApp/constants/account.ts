@@ -14,6 +14,8 @@ export type StoredUser = {
   status?: 'free' | 'premium';
   premium?: boolean;
   premiumPlan?: 'monthly' | 'yearly';
+  authProvider?: 'email' | 'facebook' | 'google' | 'twitter' | 'microsoft';
+  facebookFriends?: { id: string; name: string; xp?: number; level?: number }[];
   language?: string;
   passwordUpdatedAt?: string;
 };

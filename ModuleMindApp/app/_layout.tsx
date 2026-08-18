@@ -25,9 +25,12 @@ export default function RootLayout() {
       <Stack.Screen name="scores" />
       <Stack.Screen name="account-settings" />
       <Stack.Screen name="premium" />
+      <Stack.Screen name="streak-celebration" />
+      <Stack.Screen name="reward-interstitial" />
       
       {/* This name matches the folder (tabs) */}
       <Stack.Screen name="(tabs)" /> 
     </Stack>
   );
 }
+
