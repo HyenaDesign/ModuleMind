@@ -87,11 +87,26 @@ export default function CreateSubjectScreen() {
       const data = await response.json();
 
       if (response.ok) {
-        const subjectId = data.id || data.subject_id || data.subjectId || data.subject?.id;
+        const subjectId = data.id || data.subject_id || data.subjectId || data.subject?.id || Date.now();
+        const localSubject = {
+          id: subjectId,
+          user_id: userId,
+          title: subjectTitle.trim(),
+          description: subjectDescription.trim() || null,
+          cover_image: coverImage?.uri || null,
+          icon: coverImage?.uri || null,
+        };
+        const localSubjectsKey = `localSubjects:${userId}`;
+        const storedLocalSubjects = await AsyncStorage.getItem(localSubjectsKey);
+        const localSubjects = storedLocalSubjects ? JSON.parse(storedLocalSubjects) : [];
+        const nextLocalSubjects = [
+          localSubject,
+          ...localSubjects.filter((subject: { id: number }) => subject.id !== subjectId),
+        ];
+        await AsyncStorage.setItem(localSubjectsKey, JSON.stringify(nextLocalSubjects));
         if (coverImage?.uri && subjectId) {
           await AsyncStorage.setItem(`subjectCover:${subjectId}`, coverImage.uri);
         }
-        // Success! Go back to the Home screen
         router.back(); 
       } else {
         setMessage(data.message || t('somethingWentWrong'));
@@ -275,3 +290,4 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 });
+

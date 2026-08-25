@@ -15,6 +15,45 @@ export type TranslationKey =
   | 'search'
   | 'subjects'
   | 'modules'
+  | 'teacherDashboard'
+  | 'teacherAccessId'
+  | 'teacherAccessHint'
+  | 'studentRole'
+  | 'teacherRole'
+  | 'students'
+  | 'classes'
+  | 'classPerformance'
+  | 'attentionNeeded'
+  | 'recentModules'
+  | 'averageScore'
+  | 'completion'
+  | 'progress'
+  | 'dayStreak'
+  | 'weeklyGoal'
+  | 'modulesMade'
+  | 'recentProgress'
+  | 'comparedLastWeek'
+  | 'questionsImproved'
+  | 'minutesLearned'
+  | 'personalAnalysis'
+  | 'keepGoing'
+  | 'bestSubject'
+  | 'focusSubject'
+  | 'noLearningDataYet'
+  | 'correctCompliment1'
+  | 'correctCompliment2'
+  | 'correctCompliment3'
+  | 'correctCompliment4'
+  | 'level'
+  | 'xpToNextLevel'
+  | 'leaderboard'
+  | 'facebookFriends'
+  | 'facebookFriendsHint'
+  | 'accountOptions'
+  | 'xpRewardTitle'
+  | 'xpRewardSubtitle'
+  | 'levelUpTitle'
+  | 'levelUpSubtitle'
   | 'premiumUser'
   | 'freeUser'
   | 'editProfile'
@@ -119,6 +158,45 @@ const translations: Record<LanguageKey, Record<TranslationKey, string>> = {
     search: 'Zoeken',
     subjects: 'Vakken',
     modules: 'Modules',
+    teacherDashboard: 'Leerkracht',
+    teacherAccessId: 'Leerkracht/admin ID',
+    teacherAccessHint: 'Optioneel, bv. MODULEMIND-TEACHER',
+    studentRole: 'Student',
+    teacherRole: 'Leerkracht',
+    students: 'Leerlingen',
+    classes: 'Klassen',
+    classPerformance: 'Klasprestaties',
+    attentionNeeded: 'Aandacht nodig',
+    recentModules: 'Recente modules',
+    averageScore: 'Gem. score',
+    completion: 'Voltooiing',
+    progress: 'Vooruitgang',
+    dayStreak: 'dagen streak',
+    weeklyGoal: 'Weekdoel',
+    modulesMade: 'modules gemaakt',
+    recentProgress: 'Recente vooruitgang',
+    comparedLastWeek: 'ten opzichte van vorige week',
+    questionsImproved: 'vragen verbeterd',
+    minutesLearned: 'min geleerd',
+    personalAnalysis: 'Persoonlijke leeranalyse',
+    keepGoing: 'Je bent sterk bezig!',
+    bestSubject: 'Sterkste vak',
+    focusSubject: 'Focusvak',
+    noLearningDataYet: 'Maak een quiz af om je analyse en streak te starten.',
+    correctCompliment1: 'Knap gedaan!',
+    correctCompliment2: 'Sterk antwoord!',
+    correctCompliment3: 'Mooi inzicht!',
+    correctCompliment4: 'Je zit helemaal goed!',
+    level: 'Level',
+    xpToNextLevel: 'XP tot volgend level',
+    leaderboard: 'Leaderboard',
+    facebookFriends: 'Facebook vrienden',
+    facebookFriendsHint: 'Log in met Facebook om vrienden te zien die ModuleMind gebruiken.',
+    accountOptions: 'Accountopties',
+    xpRewardTitle: 'Beloning verdiend',
+    xpRewardSubtitle: 'Je XP is bijgewerkt na deze module.',
+    levelUpTitle: 'Level omhoog',
+    levelUpSubtitle: 'Sterk bezig, je hebt een nieuw level bereikt!',
     premiumUser: 'Premium gebruiker',
     freeUser: 'Gratis gebruiker',
     editProfile: 'Bewerk profiel',
@@ -222,6 +300,45 @@ const translations: Record<LanguageKey, Record<TranslationKey, string>> = {
     search: 'Search',
     subjects: 'Subjects',
     modules: 'Modules',
+    teacherDashboard: 'Teacher',
+    teacherAccessId: 'Teacher/admin ID',
+    teacherAccessHint: 'Optional, e.g. MODULEMIND-TEACHER',
+    studentRole: 'Student',
+    teacherRole: 'Teacher',
+    students: 'Students',
+    classes: 'Classes',
+    classPerformance: 'Class performance',
+    attentionNeeded: 'Attention needed',
+    recentModules: 'Recent modules',
+    averageScore: 'Avg. score',
+    completion: 'Completion',
+    progress: 'Progress',
+    dayStreak: 'day streak',
+    weeklyGoal: 'Weekly goal',
+    modulesMade: 'modules completed',
+    recentProgress: 'Recent progress',
+    comparedLastWeek: 'compared with last week',
+    questionsImproved: 'questions improved',
+    minutesLearned: 'min learned',
+    personalAnalysis: 'Personal learning analysis',
+    keepGoing: 'You are doing great!',
+    bestSubject: 'Strongest subject',
+    focusSubject: 'Focus subject',
+    noLearningDataYet: 'Finish a quiz to start your analysis and streak.',
+    correctCompliment1: 'Nicely done!',
+    correctCompliment2: 'Strong answer!',
+    correctCompliment3: 'Great insight!',
+    correctCompliment4: 'You nailed it!',
+    level: 'Level',
+    xpToNextLevel: 'XP to next level',
+    leaderboard: 'Leaderboard',
+    facebookFriends: 'Facebook friends',
+    facebookFriendsHint: 'Log in with Facebook to see friends who use ModuleMind.',
+    accountOptions: 'Account options',
+    xpRewardTitle: 'Reward earned',
+    xpRewardSubtitle: 'Your XP was updated after this module.',
+    levelUpTitle: 'Level up',
+    levelUpSubtitle: 'Great work, you reached a new level!',
     premiumUser: 'Premium user',
     freeUser: 'Free user',
     editProfile: 'Edit profile',
@@ -325,6 +442,45 @@ const translations: Record<LanguageKey, Record<TranslationKey, string>> = {
     search: 'Rechercher',
     subjects: 'Matieres',
     modules: 'Modules',
+    teacherDashboard: 'Enseignant',
+    teacherAccessId: 'ID enseignant/admin',
+    teacherAccessHint: 'Optionnel, ex. MODULEMIND-TEACHER',
+    studentRole: 'Etudiant',
+    teacherRole: 'Enseignant',
+    students: 'Eleves',
+    classes: 'Classes',
+    classPerformance: 'Performance de classe',
+    attentionNeeded: 'Attention requise',
+    recentModules: 'Modules recents',
+    averageScore: 'Score moyen',
+    completion: 'Completion',
+    progress: 'Progression',
+    dayStreak: 'jours de serie',
+    weeklyGoal: 'Objectif hebdo',
+    modulesMade: 'modules termines',
+    recentProgress: 'Progres recent',
+    comparedLastWeek: 'par rapport a la semaine derniere',
+    questionsImproved: 'questions ameliorees',
+    minutesLearned: 'min apprises',
+    personalAnalysis: 'Analyse personnelle',
+    keepGoing: 'Vous progressez tres bien!',
+    bestSubject: 'Matiere forte',
+    focusSubject: 'Matiere a travailler',
+    noLearningDataYet: 'Terminez un quiz pour lancer votre analyse et votre serie.',
+    correctCompliment1: 'Tres bien!',
+    correctCompliment2: 'Bonne reponse!',
+    correctCompliment3: 'Belle idee!',
+    correctCompliment4: 'C est exactement ca!',
+    level: 'Niveau',
+    xpToNextLevel: 'XP avant niveau suivant',
+    leaderboard: 'Classement',
+    facebookFriends: 'Amis Facebook',
+    facebookFriendsHint: 'Connectez-vous avec Facebook pour voir les amis qui utilisent ModuleMind.',
+    accountOptions: 'Options du compte',
+    xpRewardTitle: 'Recompense gagnee',
+    xpRewardSubtitle: 'Votre XP a ete mise a jour apres ce module.',
+    levelUpTitle: 'Niveau superieur',
+    levelUpSubtitle: 'Bravo, vous avez atteint un nouveau niveau!',
     premiumUser: 'Utilisateur premium',
     freeUser: 'Utilisateur gratuit',
     editProfile: 'Modifier le profil',
@@ -428,6 +584,45 @@ const translations: Record<LanguageKey, Record<TranslationKey, string>> = {
     search: 'Suche',
     subjects: 'Facher',
     modules: 'Module',
+    teacherDashboard: 'Lehrkraft',
+    teacherAccessId: 'Lehrkraft/Admin ID',
+    teacherAccessHint: 'Optional, z.B. MODULEMIND-TEACHER',
+    studentRole: 'Student',
+    teacherRole: 'Lehrkraft',
+    students: 'Schuler',
+    classes: 'Klassen',
+    classPerformance: 'Klassenleistung',
+    attentionNeeded: 'Aufmerksamkeit notig',
+    recentModules: 'Aktuelle Module',
+    averageScore: 'Durchschn. Score',
+    completion: 'Abschluss',
+    progress: 'Fortschritt',
+    dayStreak: 'Tage Serie',
+    weeklyGoal: 'Wochenziel',
+    modulesMade: 'Module erledigt',
+    recentProgress: 'Aktueller Fortschritt',
+    comparedLastWeek: 'im Vergleich zur letzten Woche',
+    questionsImproved: 'Fragen verbessert',
+    minutesLearned: 'Min gelernt',
+    personalAnalysis: 'Personliche Lernanalyse',
+    keepGoing: 'Du machst das stark!',
+    bestSubject: 'Starkstes Fach',
+    focusSubject: 'Fokusfach',
+    noLearningDataYet: 'Beende ein Quiz, um Analyse und Serie zu starten.',
+    correctCompliment1: 'Gut gemacht!',
+    correctCompliment2: 'Starke Antwort!',
+    correctCompliment3: 'Guter Gedanke!',
+    correctCompliment4: 'Genau richtig!',
+    level: 'Level',
+    xpToNextLevel: 'XP bis zum nachsten Level',
+    leaderboard: 'Bestenliste',
+    facebookFriends: 'Facebook Freunde',
+    facebookFriendsHint: 'Melde dich mit Facebook an, um Freunde zu sehen, die ModuleMind nutzen.',
+    accountOptions: 'Kontooptionen',
+    xpRewardTitle: 'Belohnung verdient',
+    xpRewardSubtitle: 'Deine XP wurde nach diesem Modul aktualisiert.',
+    levelUpTitle: 'Level aufgestiegen',
+    levelUpSubtitle: 'Stark, du hast ein neues Level erreicht!',
     premiumUser: 'Premium Nutzer',
     freeUser: 'Kostenloser Nutzer',
     editProfile: 'Profil bearbeiten',
@@ -541,3 +736,4 @@ export const setStoredLanguage = async (language: LanguageKey) => {
 };
 
 export const translate = (language: LanguageKey, key: TranslationKey) => translations[language][key];
+

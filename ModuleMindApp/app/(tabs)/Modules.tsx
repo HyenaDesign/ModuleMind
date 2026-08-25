@@ -62,26 +62,38 @@ export default function ModulesScreen() {
   const usagePercent = isPremium ? 0 : Math.min(100, Math.round((modules.length / FREE_MODULE_LIMIT) * 100));
 
   const fetchModules = useCallback(async () => {
+    let localModules: Module[] = [];
+
     try {
       setLoading(true);
       setMessage(null);
       const user = await getStoredUser();
       setIsPremium(isPremiumUser(user));
+      const storedLocalModules = subjectId ? await AsyncStorage.getItem(`localModules:${subjectId}`) : null;
+      localModules = storedLocalModules ? JSON.parse(storedLocalModules) : [];
 
-      // 2. Fetch modules specifically for THIS subject
       const response = await fetch(`https://modulemindapi-production.up.railway.app/modules/${subjectId}`);
       const data = await response.json();
-      
+
       if (Array.isArray(data)) {
-        const hydratedModules = await Promise.all(data.map(getCachedModule));
+        const mergedModules = [...localModules];
+        data.forEach((module: Module) => {
+          const index = mergedModules.findIndex((item) => item.id === module.id || item.title.trim().toLowerCase() === module.title.trim().toLowerCase());
+          if (index >= 0) {
+            mergedModules[index] = { ...mergedModules[index], ...module };
+          } else {
+            mergedModules.push(module);
+          }
+        });
+        const hydratedModules = await Promise.all(mergedModules.map(getCachedModule));
         setModules(hydratedModules);
       } else {
         setMessage(data.message || t('somethingWentWrong'));
-        setModules([]);
+        setModules(localModules);
       }
     } catch {
       setMessage(t('noInternet'));
-      setModules([]);
+      setModules(localModules);
     } finally {
       setLoading(false);
     }
@@ -277,3 +289,4 @@ const styles = StyleSheet.create({
   moduleTitleText: { fontSize: 18, fontWeight: '700', color: '#333' },
   moduleSubText: { fontSize: 14, color: '#666' }
 });
+

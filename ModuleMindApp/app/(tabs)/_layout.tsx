@@ -5,12 +5,13 @@ export default function TabLayout() {
     <Tabs 
       screenOptions={{ 
         headerShown: false, 
-        tabBarStyle: { display: 'none' } // Hide the native bar
+        tabBarStyle: { display: 'none' }
       }}
     >
       <Tabs.Screen name="Home" />
       <Tabs.Screen name="Modules" />
       <Tabs.Screen name="explore" />
+      <Tabs.Screen name="Teacher" />
       <Tabs.Screen name="Profile" />
     </Tabs>
   );

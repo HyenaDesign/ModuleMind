@@ -14,6 +14,7 @@ import {
 import { Ionicons, FontAwesome, AntDesign } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import AppMessage from '../components/AppMessage';
+import { isTeacherAccessId, normalizeTeacherAccessId } from '../constants/account';
 import { useLanguage } from '../hooks/use-language';
 
 export default function SignUpScreen() {
@@ -25,6 +26,8 @@ export default function SignUpScreen() {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [accountRole, setAccountRole] = useState<'student' | 'teacher'>('student');
+  const [teacherAccessId, setTeacherAccessId] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -39,6 +42,10 @@ export default function SignUpScreen() {
       setMessage(t('acceptTerms'));
       return;
     }
+    if (accountRole === 'teacher' && !isTeacherAccessId(teacherAccessId)) {
+      setMessage(t('teacherAccessHint'));
+      return;
+    }
 
     setLoading(true);
     setMessage(null);
@@ -51,6 +58,9 @@ export default function SignUpScreen() {
           full_name: fullName,
           email: email,
           password: password,
+          role: accountRole,
+          admin_id: accountRole === 'teacher' ? normalizeTeacherAccessId(teacherAccessId) : undefined,
+          teacher_id: accountRole === 'teacher' ? normalizeTeacherAccessId(teacherAccessId) : undefined,
         }),
       });
 
@@ -136,6 +146,34 @@ export default function SignUpScreen() {
                 />
               </View>
 
+              <View style={styles.roleRow}>
+                <TouchableOpacity
+                  style={[styles.roleButton, accountRole === 'student' && styles.roleButtonActive]}
+                  onPress={() => setAccountRole('student')}
+                >
+                  <Text style={[styles.roleText, accountRole === 'student' && styles.roleTextActive]}>{t('studentRole')}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.roleButton, accountRole === 'teacher' && styles.roleButtonActive]}
+                  onPress={() => setAccountRole('teacher')}
+                >
+                  <Text style={[styles.roleText, accountRole === 'teacher' && styles.roleTextActive]}>{t('teacherRole')}</Text>
+                </TouchableOpacity>
+              </View>
+
+              {accountRole === 'teacher' && (
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>{t('teacherAccessId')}</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder={t('teacherAccessHint')}
+                    placeholderTextColor="#BBB"
+                    value={teacherAccessId}
+                    onChangeText={setTeacherAccessId}
+                    autoCapitalize="characters"
+                  />
+                </View>
+              )}
               {/* Checkbox Section */}
               <TouchableOpacity 
                 style={styles.checkboxContainer} 
@@ -263,6 +301,31 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     color: '#777777',
   },
+  roleRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 14,
+  },
+  roleButton: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#E6E6E6',
+    borderRadius: 8,
+    paddingVertical: 11,
+    alignItems: 'center',
+    backgroundColor: '#FFF',
+  },
+  roleButtonActive: {
+    borderColor: '#00C853',
+    backgroundColor: '#E9FBEF',
+  },
+  roleText: {
+    color: '#777',
+    fontWeight: '700',
+  },
+  roleTextActive: {
+    color: '#00C853',
+  },
   checkboxContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -339,3 +402,4 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
 });
+
