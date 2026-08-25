@@ -119,17 +119,67 @@ export default function CreateModuleScreen() {
   };
 
   // --- STEP 1 LOGIC: PICK FILE ---
+  const allowedDocumentExtensions = ['.pdf', '.docx', '.txt'];
+  const getFilenameFromUri = (uri: string) => uri.split('/').pop() || 'document';
+  const isSupportedDocument = (name?: string) => {
+    if (!name) return false;
+    const normalizedName = name.toLowerCase();
+    return allowedDocumentExtensions.some((ext) => normalizedName.endsWith(ext));
+  };
+
+  const isCanceledDocumentPick = (result: any) => {
+    return result?.canceled === true || result?.type === 'cancel' || result?.type === 'dismissed';
+  };
+
+  const getUploadPayload = async (uri: string, fileName: string, mimeType: string) => {
+    try {
+      const response = await fetch(uri);
+      const blob = await response.blob();
+      if (blob && (blob as any).size > 0) {
+        return { payload: blob, isBlob: true };
+      }
+    } catch (error) {
+      console.warn('Failed to fetch file URI as blob:', error);
+    }
+
+    return {
+      payload: { uri, name: fileName, type: mimeType },
+      isBlob: false,
+    };
+  };
+
   const pickDocument = async () => {
     try {
       const result = await DocumentPicker.getDocumentAsync({
-        type: ["application/pdf", "text/plain", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"],
+        type: ['*/*'],
         copyToCacheDirectory: true,
       });
 
-      if (!result.canceled && result.assets && result.assets.length > 0) {
-        setFile(result);
+      if (isCanceledDocumentPick(result)) return;
+
+      const rawResult = result as any;
+      let asset = result.assets?.[0];
+      if (!asset && rawResult.uri) {
+        asset = {
+          uri: rawResult.uri,
+          name: rawResult.name || getFilenameFromUri(rawResult.uri),
+          mimeType: rawResult.mimeType,
+        } as DocumentPicker.DocumentPickerAsset;
       }
-    } catch {
+
+      if (!asset) {
+        setMessage({ text: t('fileLoadFailed'), tone: 'error' });
+        return;
+      }
+
+      if (!isSupportedDocument(asset.name)) {
+        setMessage({ text: t('unsupportedFileType'), tone: 'warning' });
+        return;
+      }
+
+      setFile({ canceled: false, assets: [asset] } as DocumentPicker.DocumentPickerSuccessResult);
+    } catch (error) {
+      console.error('Document picker error:', error);
       setMessage({ text: t('fileLoadFailed'), tone: 'error' });
     }
   };
@@ -158,21 +208,29 @@ export default function CreateModuleScreen() {
 
     try {
       const selectedFile = file.assets[0];
+      if (!selectedFile?.uri) {
+        setMessage({ text: t('fileLoadFailed'), tone: 'error' });
+        setIsProcessing(false);
+        return;
+      }
+
       const formData = new FormData();
+      const fileName = selectedFile.name || getFilenameFromUri(selectedFile.uri);
 
       let type = selectedFile.mimeType;
       if (!type || type === 'application/octet-stream') {
-        if (selectedFile.name.toLowerCase().endsWith('.pdf')) type = 'application/pdf';
-        else if (selectedFile.name.toLowerCase().endsWith('.docx')) type = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-        else if (selectedFile.name.toLowerCase().endsWith('.txt')) type = 'text/plain';
+        if (fileName.toLowerCase().endsWith('.pdf')) type = 'application/pdf';
+        else if (fileName.toLowerCase().endsWith('.docx')) type = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+        else if (fileName.toLowerCase().endsWith('.txt')) type = 'text/plain';
       }
 
-      // @ts-ignore
-      formData.append('file', {
-        uri: selectedFile.uri,
-        name: selectedFile.name || 'document',
-        type: type || 'application/octet-stream',
-      });
+      const uploadPayload = await getUploadPayload(selectedFile.uri, fileName, type || 'application/octet-stream');
+      if (uploadPayload.isBlob) {
+        formData.append('file', uploadPayload.payload as Blob, fileName);
+      } else {
+        // @ts-ignore
+        formData.append('file', uploadPayload.payload);
+      }
       formData.append('model', selectedModel);
       formData.append('questionTypes', JSON.stringify(['single', 'multiple', 'open']));
       formData.append('includeExplanations', 'true');

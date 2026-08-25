@@ -105,6 +105,7 @@ export type TranslationKey =
   | 'moduleTitleRequired'
   | 'subjectRequired'
   | 'fileLoadFailed'
+  | 'unsupportedFileType'
   | 'invalidGeneratedQuestions'
   | 'generationFailed'
   | 'moduleSaveFailed'
@@ -208,6 +209,7 @@ const translations: Record<LanguageKey, Record<TranslationKey, string>> = {
     moduleTitleRequired: 'Geef je module eerst een titel.',
     subjectRequired: 'Open eerst een vak voordat je een module maakt.',
     fileLoadFailed: 'Kon bestand niet laden.',
+    unsupportedFileType: 'Alleen PDF, DOCX en TXT zijn toegestaan.',
     invalidGeneratedQuestions: 'De gegenereerde vragen hebben geen geldig formaat.',
     generationFailed: 'Genereren mislukt.',
     moduleSaveFailed: 'Kon module niet opslaan.',
@@ -310,6 +312,7 @@ const translations: Record<LanguageKey, Record<TranslationKey, string>> = {
     moduleTitleRequired: 'Give your module a title first.',
     subjectRequired: 'Open a subject before creating a module.',
     fileLoadFailed: 'Could not load the file.',
+    unsupportedFileType: 'Only PDF, DOCX, and TXT files are supported.',
     invalidGeneratedQuestions: 'The generated questions are not valid.',
     generationFailed: 'Generation failed.',
     moduleSaveFailed: 'Could not save module.',
@@ -412,6 +415,7 @@ const translations: Record<LanguageKey, Record<TranslationKey, string>> = {
     moduleTitleRequired: 'Donnez d abord un titre au module.',
     subjectRequired: 'Ouvrez d abord une matiere.',
     fileLoadFailed: 'Impossible de charger le fichier.',
+    unsupportedFileType: 'Seuls les fichiers PDF, DOCX et TXT sont pris en charge.',
     invalidGeneratedQuestions: 'Les questions generees ne sont pas valides.',
     generationFailed: 'Generation echouee.',
     moduleSaveFailed: 'Impossible d enregistrer le module.',
@@ -514,6 +518,7 @@ const translations: Record<LanguageKey, Record<TranslationKey, string>> = {
     moduleTitleRequired: 'Gib dem Modul zuerst einen Titel.',
     subjectRequired: 'Offne zuerst ein Fach.',
     fileLoadFailed: 'Datei konnte nicht geladen werden.',
+    unsupportedFileType: 'Nur PDF-, DOCX- und TXT-Dateien werden unterstützt.',
     invalidGeneratedQuestions: 'Die generierten Fragen sind ungultig.',
     generationFailed: 'Generierung fehlgeschlagen.',
     moduleSaveFailed: 'Modul konnte nicht gespeichert werden.',
